@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/backend/">
+    <Project Path="src/backend/EventHub.Api/EventHub.Api.csproj" />
+    <Project Path="src/backend/EventHub.Application/EventHub.Application.csproj" />
+    <Project Path="src/backend/EventHub.Domain/EventHub.Domain.csproj" />
+    <Project Path="src/backend/EventHub.Infrastructure/EventHub.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EventHub.Api.FunctionalTests/EventHub.Api.FunctionalTests.csproj" />
+    <Project Path="tests/EventHub.Application.UnitTests/EventHub.Application.UnitTests.csproj" />
+    <Project Path="tests/EventHub.Domain.UnitTests/EventHub.Domain.UnitTests.csproj" />
+    <Project Path="tests/EventHub.Infrastructure.IntegrationTests/EventHub.Infrastructure.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
