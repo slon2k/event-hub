@@ -23,7 +23,6 @@ We apply **Command Query Responsibility Segregation (CQRS)** at the application 
 
 1. `LoggingBehaviour` — logs command name and duration
 2. `ValidationBehaviour` — runs FluentValidation; short-circuits with `ValidationException` on failure
-3. _(future)_ `TransactionBehaviour` — wraps commands in a `IUnitOfWork` transaction
 
 ## Alternatives Considered
 

@@ -66,7 +66,7 @@ EventHub is a small-scale, invite-only event management platform built as a trai
 
 | Layer | Technology | Notes |
 |---|---|---|
-| API | ASP.NET Core 10, Minimal APIs / Controllers | Hosted on Azure App Service |
+| API | ASP.NET Core 10, Minimal APIs | Hosted on Azure App Service |
 | Auth (Admin/Organizer) | Azure Entra ID, JWT Bearer | App Roles: `Admin`, `Organizer` |
 | Auth (Participant) | HMAC-SHA256 Magic Link token | Single-use, 72h expiry, public endpoint — see ADR 0006 |
 | Application | MediatR, FluentValidation | CQRS, pipeline behaviours |
@@ -78,7 +78,7 @@ EventHub is a small-scale, invite-only event management platform built as a trai
 | Email | Azure Communication Services Email | Transactional email delivery |
 | IaC | Azure Bicep | `infra/bicep/` |
 | CI/CD | GitHub Actions | `.github/workflows/` |
-| Testing | xUnit, FluentAssertions, Testcontainers | Unit, Integration, Functional |
+| Testing | xUnit, Testcontainers | Unit, Integration, Functional |
 
 ---
 
@@ -98,6 +98,7 @@ src/
 tests/
   EventHub.Domain.UnitTests/
   EventHub.Application.UnitTests/
+  EventHub.Infrastructure.UnitTests/
   EventHub.Infrastructure.IntegrationTests/
   EventHub.Api.FunctionalTests/
 
@@ -127,20 +128,20 @@ docs/
 ### EventHub.Application
 - **Commands** and **Queries** (MediatR `IRequest<T>`)
 - **Handlers**: one handler per command/query, one responsibility
-- **Domain Event Handlers**: react to domain events — e.g., write `OutboxMessage` on `InvitationSent`
-- **Interfaces**: `IEventRepository`, `IInvitationRepository`, `IOutboxRepository`, `IUnitOfWork`
+- **Domain Event Handlers**: react to domain events raised by aggregates for application-level side-effects (e.g. sending notifications)
+- **Abstractions**: `IApplicationDbContext` — exposes `DbSet<T>` properties and `SaveChangesAsync`; implemented in Infrastructure, depended on here
 - **Validation**: FluentValidation validators, registered as MediatR pipeline behaviours
-- No dependency on EF Core, Azure SDKs, or HTTP.
+- No dependency on EF Core SQL Server provider, Azure SDKs, or HTTP.
 
 ### EventHub.Infrastructure
-- **DbContext** (`EventHubDbContext`) and all EF Core entity configurations
-- **Concrete repositories** implementing application interfaces
-- **Unit of Work** wrapping `DbContext.SaveChangesAsync()`
+- **`EventHubDbContext`** implementing `IApplicationDbContext`; all EF Core Fluent API entity configurations
+- **Outbox dispatch**: `SaveChangesAsync` override collects domain events from tracked `AggregateRoot` instances and persists them as `OutboxMessage` rows in the same transaction as the domain change
+- **`RsvpTokenService`**: HMAC-SHA256 token generation and validation
 - **EF Core Migrations**
 - No business logic.
 
 ### EventHub.Api
-- **Controllers / Endpoint definitions**: map HTTP verbs to MediatR commands/queries
+- **Minimal API endpoint groups**: map HTTP verbs to MediatR commands/queries
 - **DI registration**: wires all layers together
 - **Middleware**: exception handling, authentication, authorisation
 - **appsettings**: connection strings, Service Bus config (env-specific via App Service config)
@@ -159,9 +160,8 @@ docs/
 | Clean Architecture / Layered | Entire solution | Separation of concerns, testability |
 | CQRS | Application layer | Separate read/write models, scalability |
 | MediatR | Application layer | Decoupled handlers, pipeline behaviours |
-| Domain Events | Domain → Application | Behaviour encapsulated in domain, side-effects in handlers |
+| Domain Events | Domain → Infrastructure → Application | Behaviour encapsulated in domain; `SaveChangesAsync` converts events to outbox rows; handlers act on published messages |
 | Outbox Pattern | Infrastructure + Functions | Reliable exactly-once message publish with no dual-write |
-| Repository + Unit of Work | Infrastructure | Testable data access, transaction control |
 | Pub/Sub (Topics) | Service Bus | Extensible notification fan-out without coupling |
 | Magic Link / Signed Token | API — public RSVP endpoint | Guest access without account registration; HMAC-SHA256 integrity |
 
