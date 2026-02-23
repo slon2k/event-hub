@@ -1,0 +1,35 @@
+using EventHub.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace EventHub.Infrastructure.Persistence.Configurations;
+
+internal sealed class InvitationConfiguration : IEntityTypeConfiguration<Invitation>
+{
+    public void Configure(EntityTypeBuilder<Invitation> builder)
+    {
+        builder.ToTable("Invitations");
+
+        builder.HasKey(i => i.Id);
+
+        builder.Property(i => i.ParticipantEmail)
+            .IsRequired()
+            .HasMaxLength(256);
+
+        builder.Property(i => i.Status)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        builder.Property(i => i.SentAt).IsRequired();
+
+        // SHA-256 hex digest = 64 chars
+        builder.Property(i => i.RsvpTokenHash)
+            .HasMaxLength(64);
+
+        // One active invitation per participant per event
+        builder.HasIndex(i => new { i.EventId, i.ParticipantEmail })
+            .IsUnique()
+            .HasFilter("[Status] != 'Cancelled'");
+    }
+}
