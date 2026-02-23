@@ -147,6 +147,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verify branch is master
+        if: github.ref != 'refs/heads/master'
+        run: |
+          echo "Prod deployments must be triggered from master, not ${{ github.ref }}"
+          exit 1
+
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
