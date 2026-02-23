@@ -38,11 +38,12 @@ public sealed class Invitation : Entity
         Guid eventId,
         string participantEmail,
         string tokenHash,
-        DateTimeOffset tokenExpiresAt)
+        DateTimeOffset tokenExpiresAt,
+        Guid? id = null)
     {
         return new Invitation
         {
-            Id = Guid.NewGuid(),
+            Id = id ?? Guid.NewGuid(),
             EventId = eventId,
             ParticipantEmail = participantEmail.ToLowerInvariant(),
             Status = InvitationStatus.Pending,
