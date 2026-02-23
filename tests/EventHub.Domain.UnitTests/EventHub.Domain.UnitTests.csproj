@@ -16,6 +16,10 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="EventHub.Domain.Common" />
+    <Using Include="EventHub.Domain.Entities" />
+    <Using Include="EventHub.Domain.Enumerations" />
+    <Using Include="EventHub.Domain.Events" />
   </ItemGroup>
 
   <ItemGroup>
