@@ -1,0 +1,154 @@
+name: Deploy API
+
+on:
+  push:
+    branches:
+      - development
+      - master
+    paths:
+      - 'src/backend/**'
+      - 'tests/**'
+  pull_request:
+    branches:
+      - development
+      - master
+    paths:
+      - 'src/backend/**'
+      - 'tests/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - prod
+
+permissions:
+  id-token: write   # required for OIDC login
+  contents: read
+
+env:
+  DOTNET_VERSION: '10.x'
+  API_PROJECT: src/backend/EventHub.Api/EventHub.Api.csproj
+
+jobs:
+  # ── Build & test on every push / PR ──────────────────────────────────────
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release --verbosity normal
+
+      - name: Publish
+        if: github.event_name != 'pull_request'
+        run: dotnet publish ${{ env.API_PROJECT }} --no-build --configuration Release --output publish/api
+
+      - name: Upload artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: api
+          path: publish/api
+          retention-days: 1
+
+  # ── Deploy to dev on push to development ─────────────────────────────────
+  deploy-dev:
+    name: Deploy – dev
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/development'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api
+          path: publish/api
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy – dev
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: eventhub-dev-api
+          package: publish/api
+
+  # ── Deploy to test on push to master ─────────────────────────────────────
+  deploy-test:
+    name: Deploy – test
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment: test
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api
+          path: publish/api
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy – test
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: eventhub-test-api
+          package: publish/api
+
+  # ── Deploy to prod on manual trigger only ────────────────────────────────
+  deploy-prod:
+    name: Deploy – prod
+    needs: build
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api
+          path: publish/api
+
+      - name: Verify branch is master
+        if: github.ref != 'refs/heads/master'
+        run: |
+          echo "Prod deployments must be triggered from master, not ${{ github.ref }}"
+          exit 1
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy – prod
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: eventhub-prod-api
+          package: publish/api
