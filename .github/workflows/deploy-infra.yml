@@ -3,11 +3,13 @@ name: Deploy Infrastructure
 on:
   push:
     branches:
+      - development
       - master
     paths:
       - 'infra/**'
   pull_request:
     branches:
+      - development
       - master
     paths:
       - 'infra/**'
@@ -18,8 +20,6 @@ on:
         required: true
         type: choice
         options:
-          - dev
-          - test
           - prod
 
 permissions:
@@ -32,18 +32,13 @@ env:
 
 jobs:
   # ── What-if preview on pull requests ─────────────────────────────────────
+  # PR → development: preview dev
+  # PR → master:      preview test
   what-if:
-    name: What-if (${{ matrix.environment }})
+    name: What-if (${{ github.base_ref == 'master' && 'test' || 'dev' }})
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - environment: dev
-            resource_group: eventhub-dev-rg
-          - environment: test
-            resource_group: eventhub-test-rg
-    environment: ${{ matrix.environment }}
+    environment: ${{ github.base_ref == 'master' && 'test' || 'dev' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -54,27 +49,33 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Set target environment
+        run: |
+          ENV=${{ github.base_ref == 'master' && 'test' || 'dev' }}
+          echo "ENV=$ENV" >> $GITHUB_ENV
+          echo "RESOURCE_GROUP=eventhub-${ENV}-rg" >> $GITHUB_ENV
+
       - name: Ensure resource group exists
         uses: azure/cli@v2
         with:
           azcliversion: latest
           inlineScript: |
-            az group create --name ${{ matrix.resource_group }} --location eastus
+            az group create --name ${{ env.RESOURCE_GROUP }} --location eastus
 
-      - name: What-if – ${{ matrix.environment }}
+      - name: What-if
         uses: azure/cli@v2
         with:
           azcliversion: latest
           inlineScript: |
             az deployment group what-if \
-              --resource-group ${{ matrix.resource_group }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
               --template-file ${{ env.TEMPLATE_FILE }} \
-              --parameters infra/bicep/environments/${{ matrix.environment }}/main.bicepparam
+              --parameters infra/bicep/environments/${{ env.ENV }}/main.bicepparam
 
-  # ── Deploy to dev on merge to master ──────────────────────────────────────
+  # ── Deploy to dev on push to development ────────────────────────────────
   deploy-dev:
     name: Deploy – dev
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/development'
     runs-on: ubuntu-latest
     environment: dev
     steps:
@@ -104,12 +105,12 @@ jobs:
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters infra/bicep/environments/dev/main.bicepparam
 
-  # ── Deploy to test / prod on manual trigger ───────────────────────────────
-  deploy-manual:
-    name: Deploy – ${{ github.event.inputs.environment }}
-    if: github.event_name == 'workflow_dispatch'
+  # ── Deploy to test on push to master ────────────────────────────────────
+  deploy-test:
+    name: Deploy – test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
+    environment: test
     steps:
       - uses: actions/checkout@v4
 
@@ -125,14 +126,47 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
-            az group create --name eventhub-${{ github.event.inputs.environment }}-rg --location eastus
+            az group create --name eventhub-test-rg --location eastus
 
-      - name: Deploy – ${{ github.event.inputs.environment }}
+      - name: Deploy – test
         uses: azure/cli@v2
         with:
           azcliversion: latest
           inlineScript: |
             az deployment group create \
-              --resource-group eventhub-${{ github.event.inputs.environment }}-rg \
+              --resource-group eventhub-test-rg \
               --template-file ${{ env.TEMPLATE_FILE }} \
-              --parameters infra/bicep/environments/${{ github.event.inputs.environment }}/main.bicepparam
+              --parameters infra/bicep/environments/test/main.bicepparam
+
+  # ── Deploy to prod on manual trigger only ────────────────────────────────
+  deploy-prod:
+    name: Deploy – prod
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Ensure resource group exists
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az group create --name eventhub-prod-rg --location eastus
+
+      - name: Deploy – prod
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az deployment group create \
+              --resource-group eventhub-prod-rg \
+              --template-file ${{ env.TEMPLATE_FILE }} \
+              --parameters infra/bicep/environments/prod/main.bicepparam
