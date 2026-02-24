@@ -30,16 +30,17 @@ param connectionStrings array = []
 param extraTags object = {}
 
 @description('Name of the SQL server.')
-param sqlServerName string = toLower(take('${replace(baseName, '-', '')}${environment}sql${uniqueString(resourceGroup().id)}', 63))
+param sqlServerName string
 
 @description('Name of the SQL database.')
-param sqlDatabaseName string = '${baseName}-${environment}-db'
+param sqlDatabaseName string
 
 @description('SQL administrator username.')
 param sqlAdminUser string = 'sqladmin'
 
 @description('Name of the Key Vault.')
-param keyVaultName string = toLower(take('${replace(baseName, '-', '')}${environment}kv${uniqueString(resourceGroup().id)}', 24))
+// Simpler, unique, and more readable Key Vault name: baseName-env-kv-xxxxxx
+param keyVaultName string = toLower('${take(baseName, 8)}-${environment}-kv-${take(uniqueString(resourceGroup().id), 6)}')
 
 // ── Variables ─────────────────────────────────────────────────────────────────
 
@@ -93,11 +94,16 @@ module keyVault 'modules/keyVault.bicep' = {
   params: {
     keyVaultName: keyVaultName
     location: location
-    sqlAdminPassword: sqlAdminPasswordGenerated
+    secrets: {
+      'sql-admin-password': sqlAdminPasswordGenerated
+    }
   }
 }
 
-// ── Outputs ───────────────────────────────────────────────────────────────────
+
+// ── Variables for Outputs ─────────────────────────────────────────────────────
+
+var sqlAdminPasswordSecretObj = filter(keyVault.outputs.secretUris, s => s.name == 'sql-admin-password')
 
 output appServicePlanName string = plan.outputs.appServicePlanName
 output appServicePlanId string = plan.outputs.appServicePlanId
@@ -110,4 +116,4 @@ output sqlDatabaseName string = sql.outputs.sqlDbName
 output sqlServerFqdn string = sql.outputs.sqlServerFqdn
 output keyVaultName string = keyVault.outputs.keyVaultName
 output keyVaultUri string = keyVault.outputs.keyVaultUri
-output sqlAdminPasswordSecretUri string = keyVault.outputs.sqlAdminPasswordSecretUri
+output sqlAdminPasswordSecretUri string = length(sqlAdminPasswordSecretObj) > 0 ? sqlAdminPasswordSecretObj[0].uri : ''

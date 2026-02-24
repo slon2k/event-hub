@@ -2,9 +2,10 @@
 param keyVaultName string
 @description('Location for Key Vault')
 param location string = resourceGroup().location
+
+@description('Key-value pairs of secrets to create in the Key Vault. Example: { "sql-admin-password": "yourpass", "api-key": "yourkey" }')
 @secure()
-@description('Value for the sql-admin-password secret. Leave empty to skip secret creation.')
-param sqlAdminPassword string = ''
+param secrets object = {}
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
   name: keyVaultName
@@ -20,14 +21,19 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
   }
 }
 
-resource sqlPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = if (!empty(sqlAdminPassword)) {
+
+resource keyVaultSecrets 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = [for secretName in objectKeys(secrets): {
   parent: keyVault
-  name: 'sql-admin-password'
+  name: secretName
   properties: {
-    value: sqlAdminPassword
+    value: secrets[secretName]
   }
-}
+}]
+
 
 output keyVaultName string = keyVault.name
 output keyVaultUri string = keyVault.properties.vaultUri
-output sqlAdminPasswordSecretUri string = !empty(sqlAdminPassword) ? sqlPasswordSecret.properties.secretUri : ''
+output secretUris array = [for (secretName, i) in objectKeys(secrets): {
+  name: secretName
+  uri: keyVaultSecrets[i].properties.secretUri
+}]
