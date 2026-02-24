@@ -32,7 +32,7 @@ env:
   AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
 
 jobs:
-  # ── What-if preview on pull requests ─────────────────────────────────────
+  # ── What-if preview on pull requests ────────────────────────────────────
   # PR → development: preview dev
   # PR → master:      preview test
   what-if:
