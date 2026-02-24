@@ -52,7 +52,7 @@ public sealed class UpdateEventCommandValidator : AbstractValidator<UpdateEventC
             .MaximumLength(2000);
 
         RuleFor(x => x.DateTime)
-            .GreaterThan(DateTimeOffset.UtcNow)
+            .Must(dateTime => dateTime > DateTimeOffset.UtcNow)
             .WithMessage("Event date must be in the future.");
 
         RuleFor(x => x.Location)
