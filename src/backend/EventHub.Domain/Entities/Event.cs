@@ -133,7 +133,8 @@ public sealed class Event : AggregateRoot
         string participantEmail,
         string rawToken,
         string tokenHash,
-        DateTimeOffset tokenExpiresAt)
+        DateTimeOffset tokenExpiresAt,
+        Guid? invitationId = null)
     {
         if (Status != EventStatus.Published)
             throw new DomainException(
@@ -149,7 +150,7 @@ public sealed class Event : AggregateRoot
             throw new DomainException(
                 $"An active invitation for '{participantEmail}' already exists for this event.");
 
-        var invitation = Invitation.Create(Id, normalizedEmail, tokenHash, tokenExpiresAt);
+        var invitation = Invitation.Create(Id, normalizedEmail, tokenHash, tokenExpiresAt, invitationId);
         _invitations.Add(invitation);
 
         RaiseDomainEvent(new InvitationSent(
