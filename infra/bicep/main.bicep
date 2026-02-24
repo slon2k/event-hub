@@ -78,15 +78,15 @@ module api 'modules/appService.bicep' = {
   }
 }
 
-module sql 'modules/sql.bicep' = {
-  name: 'sql'
-  params: {
-    sqlServerName: sqlServerName
-    sqlDbName: sqlDatabaseName
-    sqlAdminUser: sqlAdminUser
-    sqlAdminPassword: sqlAdminPasswordGenerated
-    location: location
-  }
+
+// Reference existing SQL Server and Database
+resource existingSqlServer 'Microsoft.Sql/servers@2022-02-01-preview' existing = {
+  name: sqlServerName
+}
+
+resource existingSqlDb 'Microsoft.Sql/servers/databases@2022-02-01-preview' existing = {
+  parent: existingSqlServer
+  name: sqlDatabaseName
 }
 
 module keyVault 'modules/keyVault.bicep' = {
@@ -111,9 +111,9 @@ output webAppName string = api.outputs.webAppName
 output webAppId string = api.outputs.webAppId
 output webAppDefaultHostName string = api.outputs.webAppDefaultHostName
 output webAppPrincipalId string = api.outputs.webAppPrincipalId
-output sqlServerName string = sql.outputs.sqlServerName
-output sqlDatabaseName string = sql.outputs.sqlDbName
-output sqlServerFqdn string = sql.outputs.sqlServerFqdn
+output sqlServerName string = existingSqlServer.name
+output sqlDatabaseName string = existingSqlDb.name
+output sqlServerFqdn string = existingSqlServer.properties.fullyQualifiedDomainName
 output keyVaultName string = keyVault.outputs.keyVaultName
 output keyVaultUri string = keyVault.outputs.keyVaultUri
 output sqlAdminPasswordSecretUri string = length(sqlAdminPasswordSecretObj) > 0 ? sqlAdminPasswordSecretObj[0].uri : ''
