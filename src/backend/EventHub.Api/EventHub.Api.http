@@ -1,6 +1,129 @@
-@EventHub.Api_HostAddress = http://localhost:5165
+@host = http://localhost:5165
+@bearerToken = <PASTE_USER_JWTS_TOKEN>
+@eventId = 00000000-0000-0000-0000-000000000000
+@invitationId = 00000000-0000-0000-0000-000000000000
+@rawToken = <PASTE_INVITATION_RAW_TOKEN>
+@missingId = 11111111-1111-1111-1111-111111111111
 
-GET {{EventHub.Api_HostAddress}}/weatherforecast/
+###
+# Create event (Organizer/Admin)
+# @name createEvent
+POST {{host}}/api/events
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+	"title": "Architecture Workshop",
+	"description": "Clean Architecture and CQRS training session",
+	"dateTime": "2026-03-05T10:00:00+00:00",
+	"location": "Room 3A",
+	"capacity": 30
+}
+
+> {% client.global.set("eventId", response.body.id); %}
+
+###
+# Get my events (Organizer/Admin)
+GET {{host}}/api/events
+Authorization: Bearer {{bearerToken}}
 Accept: application/json
 
 ###
+# Get event by id (Organizer/Admin)
+GET {{host}}/api/events/{{eventId}}
+Authorization: Bearer {{bearerToken}}
+Accept: application/json
+
+###
+# Get event by id (NotFound)
+GET {{host}}/api/events/{{missingId}}
+Authorization: Bearer {{bearerToken}}
+Accept: application/json
+
+###
+# Update event (Organizer/Admin)
+PUT {{host}}/api/events/{{eventId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+	"title": "Architecture Workshop (Updated)",
+	"description": "Updated workshop details",
+	"dateTime": "2026-03-06T10:00:00+00:00",
+	"location": "Room 3B",
+	"capacity": 40
+}
+
+###
+# Update event (Validation error: past date)
+PUT {{host}}/api/events/{{eventId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+	"title": "Architecture Workshop (Invalid)",
+	"description": "Should fail validation",
+	"dateTime": "2020-01-01T10:00:00+00:00",
+	"location": "Room 3B",
+	"capacity": 40
+}
+
+###
+# Publish event (Organizer/Admin)
+POST {{host}}/api/events/{{eventId}}/publish
+Authorization: Bearer {{bearerToken}}
+
+###
+# Cancel event (Organizer/Admin)
+POST {{host}}/api/events/{{eventId}}/cancel
+Authorization: Bearer {{bearerToken}}
+
+###
+# Send invitation (Organizer/Admin)
+# @name sendInvitation
+POST {{host}}/api/events/{{eventId}}/invitations
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+	"participantEmail": "participant@example.com"
+}
+
+> {% client.global.set("invitationId", response.body.id); %}
+
+###
+# Cancel invitation (Organizer/Admin)
+DELETE {{host}}/api/events/{{eventId}}/invitations/{{invitationId}}
+Authorization: Bearer {{bearerToken}}
+
+###
+# Reissue invitation token (Organizer/Admin)
+POST {{host}}/api/events/{{eventId}}/invitations/{{invitationId}}/reissue
+Authorization: Bearer {{bearerToken}}
+
+###
+# Respond to invitation (Public endpoint, no JWT)
+POST {{host}}/api/invitations/respond
+Content-Type: application/json
+
+{
+	"invitationId": "{{invitationId}}",
+	"rawToken": "{{rawToken}}",
+	"response": "Accept"
+}
+
+###
+# Respond to invitation (Validation error: invalid response value)
+POST {{host}}/api/invitations/respond
+Content-Type: application/json
+
+{
+	"invitationId": "{{invitationId}}",
+	"rawToken": "{{rawToken}}",
+	"response": "Maybe"
+}
+
+###
+# Unauthorized check (missing JWT)
+GET {{host}}/api/events
+Accept: application/json

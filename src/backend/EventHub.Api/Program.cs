@@ -13,15 +13,30 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // -----------------------------------------------------------------------
-// Authentication — Azure Entra ID JWT Bearer
+// Authentication — Azure Entra ID or local Dev JWT (user-jwts)
 // -----------------------------------------------------------------------
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+var authMode = builder.Configuration["Authentication:Mode"] ?? "AzureAd";
+
+var authenticationBuilder = builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme);
+
+if (string.Equals(authMode, "DevJwt", StringComparison.OrdinalIgnoreCase))
+{
+    authenticationBuilder.AddJwtBearer();
+}
+else
+{
+    var authority = builder.Configuration["AzureAd:Authority"]
+        ?? throw new InvalidOperationException("AzureAd:Authority is not configured.");
+    var audience = builder.Configuration["AzureAd:Audience"]
+        ?? throw new InvalidOperationException("AzureAd:Audience is not configured.");
+
+    authenticationBuilder.AddJwtBearer(options =>
     {
-        options.Authority = builder.Configuration["AzureAd:Authority"];
-        options.Audience  = builder.Configuration["AzureAd:Audience"];
+        options.Authority = authority;
+        options.Audience = audience;
     });
+}
 
 // -----------------------------------------------------------------------
 // Authorization policies

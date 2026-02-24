@@ -1,0 +1,90 @@
+@host = http://localhost:5165
+@bearerToken = <PASTE_USER_JWTS_TOKEN>
+
+# Fill these after step 1/2 responses
+@eventId = 00000000-0000-0000-0000-000000000000
+@invitationId = 00000000-0000-0000-0000-000000000000
+@rawToken = <PASTE_RAW_TOKEN_FROM_INVITATION_SEND_RESPONSE_OR_LOG>
+
+###
+# 0) Health check: authenticated organizer can read own events
+GET {{host}}/api/events
+Authorization: Bearer {{bearerToken}}
+Accept: application/json
+
+###
+# 1) Create event
+# Copy returned id into @eventId
+# @name createEvent
+POST {{host}}/api/events
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": "EventHub Happy Path Session",
+  "description": "End-to-end API flow validation",
+  "dateTime": "2026-03-10T09:30:00+00:00",
+  "location": "Training Room A",
+  "capacity": 25
+}
+
+> {% client.global.set("eventId", response.body.id); %}
+
+###
+# 2) Send invitation
+# Copy returned id into @invitationId
+# @name sendInvitation
+POST {{host}}/api/events/{{eventId}}/invitations
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "participantEmail": "participant@example.com"
+}
+
+> {% client.global.set("invitationId", response.body.id); %}
+
+###
+# 3) Publish event
+POST {{host}}/api/events/{{eventId}}/publish
+Authorization: Bearer {{bearerToken}}
+
+###
+# 4) Get event detail and verify invitation status is Pending
+GET {{host}}/api/events/{{eventId}}
+Authorization: Bearer {{bearerToken}}
+Accept: application/json
+
+###
+# 5) Respond to invitation (public endpoint)
+# Requires rawToken captured from your invitation delivery mechanism.
+POST {{host}}/api/invitations/respond
+Content-Type: application/json
+
+{
+  "invitationId": "{{invitationId}}",
+  "rawToken": "{{rawToken}}",
+  "response": "Accept"
+}
+
+###
+# 6) Verify updated event detail (Accepted count/status changes)
+GET {{host}}/api/events/{{eventId}}
+Authorization: Bearer {{bearerToken}}
+Accept: application/json
+
+###
+# Optional: decline flow (use a new invitation/token)
+POST {{host}}/api/invitations/respond
+Content-Type: application/json
+
+{
+  "invitationId": "{{invitationId}}",
+  "rawToken": "{{rawToken}}",
+  "response": "Decline"
+}
+
+###
+# 7) Cleanup (optional): cancel event
+POST {{host}}/api/events/{{eventId}}/cancel
+Authorization: Bearer {{bearerToken}}
