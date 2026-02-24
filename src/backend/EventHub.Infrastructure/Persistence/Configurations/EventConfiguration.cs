@@ -1,0 +1,47 @@
+using EventHub.Domain.Entities;
+using EventHub.Domain.Enumerations;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace EventHub.Infrastructure.Persistence.Configurations;
+
+internal sealed class EventConfiguration : IEntityTypeConfiguration<Event>
+{
+    public void Configure(EntityTypeBuilder<Event> builder)
+    {
+        builder.ToTable("Events");
+
+        builder.HasKey(e => e.Id);
+
+        builder.Property(e => e.Title)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        builder.Property(e => e.Description)
+            .HasMaxLength(2000);
+
+        builder.Property(e => e.Location)
+            .HasMaxLength(500);
+
+        builder.Property(e => e.Status)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        builder.Property(e => e.OrganizerId)
+            .IsRequired()
+            .HasMaxLength(36); // Entra OID
+
+        builder.Property(e => e.CreatedAt).IsRequired();
+        builder.Property(e => e.UpdatedAt).IsRequired();
+
+        // Map private backing field for Invitations collection
+        builder.Navigation(e => e.Invitations)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(e => e.Invitations)
+            .WithOne()
+            .HasForeignKey(i => i.EventId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}

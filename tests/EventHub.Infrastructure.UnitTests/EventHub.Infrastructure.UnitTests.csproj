@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -16,14 +16,11 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
-    <Using Include="EventHub.Domain.Common" />
-    <Using Include="EventHub.Domain.Entities" />
-    <Using Include="EventHub.Domain.Enumerations" />
-    <Using Include="EventHub.Domain.Events" />
+    <Using Include="EventHub.Infrastructure.Services" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\backend\EventHub.Domain\EventHub.Domain.csproj" />
+    <ProjectReference Include="..\..\src\backend\EventHub.Infrastructure\EventHub.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

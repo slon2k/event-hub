@@ -29,6 +29,7 @@ permissions:
 
 env:
   TEMPLATE_FILE: infra/bicep/main.bicep
+  AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
 
 jobs:
   # ── What-if preview on pull requests ─────────────────────────────────────
@@ -60,7 +61,7 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
-            az group create --name ${{ env.RESOURCE_GROUP }} --location eastus
+              az group create --name ${{ env.RESOURCE_GROUP }} --location ${{ env.AZURE_LOCATION }}
 
       - name: What-if
         uses: azure/cli@v2
@@ -93,7 +94,7 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
-            az group create --name eventhub-dev-rg --location eastus
+              az group create --name eventhub-dev-rg --location ${{ env.AZURE_LOCATION }}
 
       - name: Deploy – dev
         uses: azure/cli@v2
@@ -126,7 +127,7 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
-            az group create --name eventhub-test-rg --location eastus
+              az group create --name eventhub-test-rg --location ${{ env.AZURE_LOCATION }}
 
       - name: Deploy – test
         uses: azure/cli@v2
@@ -165,7 +166,7 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
-            az group create --name eventhub-prod-rg --location eastus
+              az group create --name eventhub-prod-rg --location ${{ env.AZURE_LOCATION }}
 
       - name: Deploy – prod
         uses: azure/cli@v2
