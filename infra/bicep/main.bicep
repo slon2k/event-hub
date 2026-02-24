@@ -30,10 +30,10 @@ param connectionStrings array = []
 param extraTags object = {}
 
 @description('Name of the SQL server.')
-param sqlServerName string = toLower(take('${replace(baseName, '-', '')}${environment}sql${uniqueString(resourceGroup().id)}', 63))
+param sqlServerName string
 
 @description('Name of the SQL database.')
-param sqlDatabaseName string = '${baseName}-${environment}-db'
+param sqlDatabaseName string
 
 @description('SQL administrator username.')
 param sqlAdminUser string = 'sqladmin'
@@ -41,12 +41,12 @@ param sqlAdminUser string = 'sqladmin'
 @description('Name of the Key Vault.')
 param keyVaultName string = toLower(take('${replace(baseName, '-', '')}${environment}kv${uniqueString(resourceGroup().id)}', 24))
 
+@description('Current UTC timestamp for password generation.')
+param currentUtcTime string = utcNow()
+
 // ── Variables ─────────────────────────────────────────────────────────────────
 
-// Deterministic password derived from the resource group — stable across re-deployments
-// and never stored in source control. It is written to Key Vault on every deploy.
-var sqlPasswordSalt = 'sql-admin'
-var sqlAdminPasswordGenerated = 'P${uniqueString(resourceGroup().id, sqlPasswordSalt)}Qq1!'
+var sqlAdminPasswordGenerated = replace(guid(resourceGroup().id, currentUtcTime), '-', '')
 
 // ── Modules ──────────────────────────────────────────────────────────────────
 
@@ -93,11 +93,16 @@ module keyVault 'modules/keyVault.bicep' = {
   params: {
     keyVaultName: keyVaultName
     location: location
-    sqlAdminPassword: sqlAdminPasswordGenerated
+    secrets: {
+      'sql-admin-password': sqlAdminPasswordGenerated
+    }
   }
 }
 
-// ── Outputs ───────────────────────────────────────────────────────────────────
+
+// ── Variables for Outputs ─────────────────────────────────────────────────────
+
+var sqlAdminPasswordSecretObj = filter(keyVault.outputs.secretUris, s => s.name == 'sql-admin-password')
 
 output appServicePlanName string = plan.outputs.appServicePlanName
 output appServicePlanId string = plan.outputs.appServicePlanId
@@ -110,4 +115,4 @@ output sqlDatabaseName string = sql.outputs.sqlDbName
 output sqlServerFqdn string = sql.outputs.sqlServerFqdn
 output keyVaultName string = keyVault.outputs.keyVaultName
 output keyVaultUri string = keyVault.outputs.keyVaultUri
-output sqlAdminPasswordSecretUri string = keyVault.outputs.sqlAdminPasswordSecretUri
+output sqlAdminPasswordSecretUri string = length(sqlAdminPasswordSecretObj) > 0 ? sqlAdminPasswordSecretObj[0].uri : ''
