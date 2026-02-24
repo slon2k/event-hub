@@ -39,14 +39,15 @@ param sqlDatabaseName string
 param sqlAdminUser string = 'sqladmin'
 
 @description('Name of the Key Vault.')
-param keyVaultName string = toLower(take('${replace(baseName, '-', '')}${environment}kv${uniqueString(resourceGroup().id)}', 24))
-
-@description('Current UTC timestamp for password generation.')
-param currentUtcTime string = utcNow()
+// Simpler, unique, and more readable Key Vault name: baseName-env-kv-xxxxxx
+param keyVaultName string = toLower('${take(baseName, 8)}-${environment}-kv-${take(uniqueString(resourceGroup().id), 6)}')
 
 // ── Variables ─────────────────────────────────────────────────────────────────
 
-var sqlAdminPasswordGenerated = replace(guid(resourceGroup().id, currentUtcTime), '-', '')
+// Deterministic password derived from the resource group — stable across re-deployments
+// and never stored in source control. It is written to Key Vault on every deploy.
+var sqlPasswordSalt = 'sql-admin'
+var sqlAdminPasswordGenerated = 'P${uniqueString(resourceGroup().id, sqlPasswordSalt)}Qq1!'
 
 // ── Modules ──────────────────────────────────────────────────────────────────
 
