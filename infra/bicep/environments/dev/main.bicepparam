@@ -13,5 +13,7 @@ param extraTags = {
   environment: 'dev'
 }
 
-// sqlAdminPassword is a required @secure() param — supply at deploy time:
-//   az deployment group create ... --parameters sqlAdminPassword=$env:SQL_ADMIN_PASSWORD
+// Supply via SQL_ADMIN_PASSWORD env var — never hard-code here.
+// CI: set as a GitHub Actions environment secret.
+// Local: $env:SQL_ADMIN_PASSWORD = '<password>' before deploying.
+param sqlAdminPassword = readEnvironmentVariable('SQL_ADMIN_PASSWORD')
