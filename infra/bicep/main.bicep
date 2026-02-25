@@ -42,8 +42,15 @@ param sqlAdminUser string = 'sqladmin'
 @description('SQL administrator password. Must be supplied at deploy time — do not store in source control.')
 param sqlAdminPassword string
 
-@description('SQL database SKU. Use { name: "Basic", tier: "Basic" } for dev/test or { name: "S0", tier: "Standard" } for prod.')
+@description('SQL database SKU. Use { name: "Basic", tier: "Basic" } for dev/test or { name: "S0", tier: "Standard" } for prod. Ignored when useFreeLimit is true.')
 param sqlDatabaseSku object = { name: 'Basic', tier: 'Basic' }
+
+@description('Use the Azure SQL free offer (up to 10 free databases per subscription). Provisions GP Serverless Gen5 2 vCores.')
+param useFreeLimit bool = false
+
+@description('Behaviour when the free limit is exhausted: AutoPause or BillOverUsage.')
+@allowed(['AutoPause', 'BillOverUsage'])
+param freeLimitExhaustionBehavior string = 'AutoPause'
 
 @description('Name of the Key Vault.')
 // Simpler, unique, and more readable Key Vault name: baseName-env-kv-xxxxxx
@@ -87,6 +94,8 @@ module sql 'modules/sql.bicep' = {
     sqlAdminUser: sqlAdminUser
     location: location
     databaseSku: sqlDatabaseSku
+    useFreeLimit: useFreeLimit
+    freeLimitExhaustionBehavior: freeLimitExhaustionBehavior
     extraTags: extraTags
   }
 }

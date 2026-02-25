@@ -14,8 +14,15 @@ param sqlAdminUser string = 'sqladmin'
 @description('Location for SQL resources.')
 param location string = resourceGroup().location
 
-@description('Database SKU. Use { name: "Basic", tier: "Basic" } for dev/test, { name: "S0", tier: "Standard" } for prod.')
+@description('Database SKU. Use { name: "Basic", tier: "Basic" } for dev/test, { name: "S0", tier: "Standard" } for prod. Ignored when useFreeLimit is true.')
 param databaseSku object = { name: 'Basic', tier: 'Basic' }
+
+@description('Use the Azure SQL free offer (100,000 vCore-seconds/month, up to 10 free databases per subscription). When true, the database is provisioned as General Purpose Serverless Gen5 2 vCores.')
+param useFreeLimit bool = false
+
+@description('Behaviour when the free limit is exhausted. AutoPause stops the database; BillOverUsage continues at standard rates.')
+@allowed(['AutoPause', 'BillOverUsage'])
+param freeLimitExhaustionBehavior string = 'AutoPause'
 
 @description('Extra tags merged into the defaults.')
 param extraTags object = {}
@@ -38,13 +45,21 @@ resource sqlServer 'Microsoft.Sql/servers@2021-11-01' = {
   }
 }
 
+// Free offer requires the GP Serverless Gen5 2vCore SKU regardless of the databaseSku param.
+var effectiveSku = useFreeLimit
+  ? { name: 'GP_S_Gen5_2', tier: 'GeneralPurpose', family: 'Gen5', capacity: 2 }
+  : databaseSku
+
 resource sqlDb 'Microsoft.Sql/servers/databases@2021-11-01' = {
   parent: sqlServer
   name: sqlDbName
   location: location
   tags: finalTags
-  sku: databaseSku
-  properties: {}
+  sku: effectiveSku
+  properties: {
+    useFreeLimit: useFreeLimit
+    freeLimitExhaustionBehavior: useFreeLimit ? freeLimitExhaustionBehavior : null
+  }
 }
 
 output sqlServerName string = sqlServer.name

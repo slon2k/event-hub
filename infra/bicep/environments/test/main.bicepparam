@@ -5,7 +5,8 @@ param environment = 'test'
 param skuName = 'F1'
 param sqlServerName = 'eventhub-test-sql'
 param sqlDatabaseName = 'eventhub-test-db'
-param sqlDatabaseSku = { name: 'Basic', tier: 'Basic' }
+param sqlDatabaseSku = { name: 'Basic', tier: 'Basic' }  // ignored when useFreeLimit = true
+param useFreeLimit = true
 param skuCapacity = 1
 param linuxFxVersion = 'DOTNETCORE|10.0'
 param extraTags = {
