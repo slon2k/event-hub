@@ -33,6 +33,7 @@ resource keyVaultSecrets 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = [for s
 
 output keyVaultName string = keyVault.name
 output keyVaultUri string = keyVault.properties.vaultUri
+#disable-next-line outputs-should-not-contain-secrets
 output secretUris array = [for (secretName, i) in objectKeys(secrets): {
   name: secretName
   uri: keyVaultSecrets[i].properties.secretUri

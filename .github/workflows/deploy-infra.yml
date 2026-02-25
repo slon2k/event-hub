@@ -71,7 +71,8 @@ jobs:
             az deployment group what-if \
               --resource-group ${{ env.RESOURCE_GROUP }} \
               --template-file ${{ env.TEMPLATE_FILE }} \
-              --parameters infra/bicep/environments/${{ env.ENV }}/main.bicepparam
+              --parameters infra/bicep/environments/${{ env.ENV }}/main.bicepparam \
+              --parameters sqlAdminPassword=${{ secrets.SQL_ADMIN_PASSWORD }}
 
   # ── Deploy to dev on push to development ────────────────────────────────
   deploy-dev:
@@ -104,7 +105,8 @@ jobs:
             az deployment group create \
               --resource-group eventhub-dev-rg \
               --template-file ${{ env.TEMPLATE_FILE }} \
-              --parameters infra/bicep/environments/dev/main.bicepparam
+              --parameters infra/bicep/environments/dev/main.bicepparam \
+              --parameters sqlAdminPassword=${{ secrets.SQL_ADMIN_PASSWORD }}
 
   # ── Deploy to test on push to master ────────────────────────────────────
   deploy-test:
@@ -137,7 +139,8 @@ jobs:
             az deployment group create \
               --resource-group eventhub-test-rg \
               --template-file ${{ env.TEMPLATE_FILE }} \
-              --parameters infra/bicep/environments/test/main.bicepparam
+              --parameters infra/bicep/environments/test/main.bicepparam \
+              --parameters sqlAdminPassword=${{ secrets.SQL_ADMIN_PASSWORD }}
 
   # ── Deploy to prod on manual trigger only ────────────────────────────────
   deploy-prod:
@@ -176,4 +179,5 @@ jobs:
             az deployment group create \
               --resource-group eventhub-prod-rg \
               --template-file ${{ env.TEMPLATE_FILE }} \
-              --parameters infra/bicep/environments/prod/main.bicepparam
+              --parameters infra/bicep/environments/prod/main.bicepparam \
+              --parameters sqlAdminPassword=${{ secrets.SQL_ADMIN_PASSWORD }}

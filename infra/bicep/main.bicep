@@ -38,16 +38,16 @@ param sqlDatabaseName string
 @description('SQL administrator username.')
 param sqlAdminUser string = 'sqladmin'
 
+@secure()
+@description('SQL administrator password. Must be supplied at deploy time — do not store in source control.')
+param sqlAdminPassword string
+
+@description('SQL database SKU. Use { name: "Basic", tier: "Basic" } for dev/test or { name: "S0", tier: "Standard" } for prod.')
+param sqlDatabaseSku object = { name: 'Basic', tier: 'Basic' }
+
 @description('Name of the Key Vault.')
 // Simpler, unique, and more readable Key Vault name: baseName-env-kv-xxxxxx
 param keyVaultName string = toLower('${take(baseName, 8)}-${environment}-kv-${take(uniqueString(resourceGroup().id), 6)}')
-
-// ── Variables ─────────────────────────────────────────────────────────────────
-
-// Deterministic password derived from the resource group — stable across re-deployments
-// and never stored in source control. It is written to Key Vault on every deploy.
-var sqlPasswordSalt = 'sql-admin'
-var sqlAdminPasswordGenerated = 'P${uniqueString(resourceGroup().id, sqlPasswordSalt)}Qq1!'
 
 // ── Modules ──────────────────────────────────────────────────────────────────
 
@@ -78,15 +78,17 @@ module api 'modules/appService.bicep' = {
   }
 }
 
-
-// Reference existing SQL Server and Database
-resource existingSqlServer 'Microsoft.Sql/servers@2022-02-01-preview' existing = {
-  name: sqlServerName
-}
-
-resource existingSqlDb 'Microsoft.Sql/servers/databases@2022-02-01-preview' existing = {
-  parent: existingSqlServer
-  name: sqlDatabaseName
+module sql 'modules/sql.bicep' = {
+  name: 'sql'
+  params: {
+    sqlServerName: sqlServerName
+    sqlDbName: sqlDatabaseName
+    sqlAdminPassword: sqlAdminPassword
+    sqlAdminUser: sqlAdminUser
+    location: location
+    databaseSku: sqlDatabaseSku
+    extraTags: extraTags
+  }
 }
 
 module keyVault 'modules/keyVault.bicep' = {
@@ -95,7 +97,7 @@ module keyVault 'modules/keyVault.bicep' = {
     keyVaultName: keyVaultName
     location: location
     secrets: {
-      'sql-admin-password': sqlAdminPasswordGenerated
+      'sql-admin-password': sqlAdminPassword
     }
   }
 }
@@ -111,9 +113,10 @@ output webAppName string = api.outputs.webAppName
 output webAppId string = api.outputs.webAppId
 output webAppDefaultHostName string = api.outputs.webAppDefaultHostName
 output webAppPrincipalId string = api.outputs.webAppPrincipalId
-output sqlServerName string = existingSqlServer.name
-output sqlDatabaseName string = existingSqlDb.name
-output sqlServerFqdn string = existingSqlServer.properties.fullyQualifiedDomainName
+output sqlServerName string = sql.outputs.sqlServerName
+output sqlDatabaseName string = sql.outputs.sqlDbName
+output sqlServerFqdn string = sql.outputs.sqlServerFqdn
 output keyVaultName string = keyVault.outputs.keyVaultName
 output keyVaultUri string = keyVault.outputs.keyVaultUri
+#disable-next-line outputs-should-not-contain-secrets
 output sqlAdminPasswordSecretUri string = length(sqlAdminPasswordSecretObj) > 0 ? sqlAdminPasswordSecretObj[0].uri : ''
