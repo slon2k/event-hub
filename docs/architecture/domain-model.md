@@ -106,39 +106,39 @@ Represents a pending domain event payload to be published to the messaging infra
 
 ```
 ┌─────────────────────────┐          ┌──────────────────────────┐
-│         Event            │          │       Invitation          │
+│         Event           │          │       Invitation         │
 ├─────────────────────────┤  1     * ├──────────────────────────┤
-│ Id             (PK)      │◀────────▶│ Id              (PK)     │
-│ Title                    │          │ EventId          (FK)    │
-│ Description              │          │ ParticipantEmail  (UQ*)  │
-│ DateTime                 │          │ Status                   │
-│ Location                 │          │ SentAt                   │
-│ Capacity                 │          │ RespondedAt              │
-│ Status                   │          │ RsvpTokenHash            │
-│ OrganizerId              │          │ RsvpTokenExpiresAt       │
-│ CreatedAt                │          └──────────────────────────┘
-│ UpdatedAt                │          * unique per (EventId, ParticipantEmail)
+│ Id             (PK)     │◀────────▶│ Id              (PK)    │
+│ Title                   │          │ EventId          (FK)    │
+│ Description             │          │ ParticipantEmail  (UQ*)  │
+│ DateTime                │          │ Status                   │
+│ Location                │          │ SentAt                   │
+│ Capacity                │          │ RespondedAt              │
+│ Status                  │          │ RsvpTokenHash            │
+│ OrganizerId             │          │ RsvpTokenExpiresAt       │
+│ CreatedAt               │          └──────────────────────────┘
+│ UpdatedAt               │          * unique per (EventId, ParticipantEmail)
 └─────────────────────────┘
 
 ┌─────────────────────────┐
-│     ApplicationUser      │
-│  (Admin / Organizer)     │
+│     ApplicationUser     │
+│  (Admin / Organizer)    │
 ├─────────────────────────┤
 │ Id  (Entra OID)  (PK)   │
-│ Email                    │
-│ DisplayName              │
+│ Email                   │
+│ DisplayName             │
 └─────────────────────────┘
 
 ┌─────────────────────────┐
-│      OutboxMessage       │
+│      OutboxMessage      │
 ├─────────────────────────┤
-│ Id             (PK)      │
-│ Type                     │
-│ Payload                  │
-│ CreatedAt                │
-│ PublishedAt              │
-│ Error                    │
-│ RetryCount               │
+│ Id             (PK)     │
+│ Type                    │
+│ Payload                 │
+│ CreatedAt               │
+│ PublishedAt             │
+│ Error                   │
+│ RetryCount              │
 └─────────────────────────┘
 ```
 
