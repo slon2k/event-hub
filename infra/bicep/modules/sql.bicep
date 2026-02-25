@@ -32,7 +32,7 @@ var baseTags = {
 }
 var finalTags = union(baseTags, extraTags)
 
-resource sqlServer 'Microsoft.Sql/servers@2021-11-01' = {
+resource sqlServer 'Microsoft.Sql/servers@2023-05-01-preview' = {
   name: sqlServerName
   location: location
   tags: finalTags
@@ -50,7 +50,7 @@ var effectiveSku = useFreeLimit
   ? { name: 'GP_S_Gen5_2', tier: 'GeneralPurpose', family: 'Gen5', capacity: 2 }
   : databaseSku
 
-resource sqlDb 'Microsoft.Sql/servers/databases@2021-11-01' = {
+resource sqlDb 'Microsoft.Sql/servers/databases@2023-05-01-preview' = {
   parent: sqlServer
   name: sqlDbName
   location: location

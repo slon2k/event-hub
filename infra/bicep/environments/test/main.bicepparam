@@ -16,4 +16,4 @@ param extraTags = {
 // Supply via SQL_ADMIN_PASSWORD env var — never hard-code here.
 // CI: set as a GitHub Actions environment secret.
 // Local: $env:SQL_ADMIN_PASSWORD = '<password>' before deploying.
-param sqlAdminPassword = readEnvironmentVariable('SQL_ADMIN_PASSWORD')
+param sqlAdminPassword = readEnvironmentVariable('SQL_ADMIN_PASSWORD', '')

@@ -52,11 +52,18 @@ param useFreeLimit bool = false
 @allowed(['AutoPause', 'BillOverUsage'])
 param freeLimitExhaustionBehavior string = 'AutoPause'
 
+@description('Enable Key Vault purge protection. Irreversible once set. Set true for prod to prevent permanent secret loss.')
+param enablePurgeProtection bool = false
+
 @description('Name of the Key Vault.')
 // Simpler, unique, and more readable Key Vault name: baseName-env-kv-xxxxxx
 param keyVaultName string = toLower('${take(baseName, 8)}-${environment}-kv-${take(uniqueString(resourceGroup().id), 6)}')
 
 // ── Modules ──────────────────────────────────────────────────────────────────
+
+// Build the Key Vault URI from the deterministic vault name.
+// This avoids a circular dependency between the api and keyVault modules.
+var kvBaseUri = 'https://${keyVaultName}.${az.environment().suffixes.keyvaultDns}/'
 
 module plan 'modules/appServicePlan.bicep' = {
   name: 'appServicePlan'
@@ -66,21 +73,6 @@ module plan 'modules/appServicePlan.bicep' = {
     location: location
     skuName: skuName
     skuCapacity: skuCapacity
-    extraTags: extraTags
-  }
-}
-
-module api 'modules/appService.bicep' = {
-  name: 'appService'
-  params: {
-    baseName: baseName
-    environment: environment
-    location: location
-    appServicePlanId: plan.outputs.appServicePlanId
-    linuxFxVersion: linuxFxVersion
-    alwaysOn: skuName != 'F1'
-    appSettings: appSettings
-    connectionStrings: connectionStrings
     extraTags: extraTags
   }
 }
@@ -100,13 +92,44 @@ module sql 'modules/sql.bicep' = {
   }
 }
 
+var sqlConnectionString = 'Server=tcp:${sql.outputs.sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};User ID=${sqlAdminUser};Password=${sqlAdminPassword};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+var sqlConnectionStringKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/sql-connection-string/)'
+
+module api 'modules/appService.bicep' = {
+  name: 'appService'
+  params: {
+    baseName: baseName
+    environment: environment
+    location: location
+    appServicePlanId: plan.outputs.appServicePlanId
+    linuxFxVersion: linuxFxVersion
+    alwaysOn: skuName != 'F1'
+    appSettings: concat(appSettings, [
+      {
+        name: 'KeyVault__Uri'
+        value: kvBaseUri
+      }
+    ])
+    connectionStrings: concat(connectionStrings, [
+      {
+        name: 'DefaultConnection'
+        type: 'SQLAzure'
+        value: sqlConnectionStringKvRef
+      }
+    ])
+    extraTags: extraTags
+  }
+}
+
 module keyVault 'modules/keyVault.bicep' = {
   name: 'keyVault'
   params: {
     keyVaultName: keyVaultName
     location: location
+    enablePurgeProtection: enablePurgeProtection
+    secretsUserPrincipalIds: [api.outputs.webAppPrincipalId]
     secrets: {
-      'sql-admin-password': sqlAdminPassword
+      'sql-connection-string': sqlConnectionString
     }
   }
 }
@@ -114,7 +137,7 @@ module keyVault 'modules/keyVault.bicep' = {
 
 // ── Variables for Outputs ─────────────────────────────────────────────────────
 
-var sqlAdminPasswordSecretObj = filter(keyVault.outputs.secretUris, s => s.name == 'sql-admin-password')
+var sqlConnectionStringSecretObj = filter(keyVault.outputs.secretUris, s => s.name == 'sql-connection-string')
 
 output appServicePlanName string = plan.outputs.appServicePlanName
 output appServicePlanId string = plan.outputs.appServicePlanId
@@ -128,4 +151,4 @@ output sqlServerFqdn string = sql.outputs.sqlServerFqdn
 output keyVaultName string = keyVault.outputs.keyVaultName
 output keyVaultUri string = keyVault.outputs.keyVaultUri
 #disable-next-line outputs-should-not-contain-secrets
-output sqlAdminPasswordSecretUri string = length(sqlAdminPasswordSecretObj) > 0 ? sqlAdminPasswordSecretObj[0].uri : ''
+output sqlConnectionStringSecretUri string = length(sqlConnectionStringSecretObj) > 0 ? sqlConnectionStringSecretObj[0].uri : ''
