@@ -56,6 +56,8 @@ A training application demonstrating production-grade patterns at small scale: a
 
 See [docs/operations/local-development.md](docs/operations/local-development.md) for full setup instructions including Docker, Entra ID config, Service Bus, and test data seeding.
 
+For API endpoint testing with VS Code request files, see the `.http` section in [Local Development](docs/operations/local-development.md).
+
 ### Quick start (API only)
 
 ```bash
@@ -64,6 +66,32 @@ dotnet restore
 dotnet ef database update --project src/backend/EventHub.Infrastructure --startup-project src/backend/EventHub.Api
 dotnet run --project src/backend/EventHub.Api
 ```
+
+### Local auth quick start (user-jwts)
+
+For local development, the API supports `Authentication:Mode = DevJwt` in `appsettings.Development.json`.
+This lets you test protected endpoints without Azure Entra ID.
+
+1) Generate an organizer token:
+
+```bash
+dotnet user-jwts create --project src/backend/EventHub.Api --role Organizer --claim "oid=dev-user-1" --output token
+```
+
+2) Call a protected endpoint with that token:
+
+```bash
+curl -H "Authorization: Bearer <PASTE_TOKEN_HERE>" http://localhost:5165/api/events
+```
+
+Useful token commands:
+
+```bash
+dotnet user-jwts list --project src/backend/EventHub.Api
+dotnet user-jwts remove --project src/backend/EventHub.Api --all
+```
+
+When you switch to real Entra ID integration, set `Authentication:Mode` to `AzureAd` and configure `AzureAd:Authority` + `AzureAd:Audience`.
 
 ### Run Azure Functions locally
 

@@ -69,49 +69,51 @@ dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<your-connection-
 
 ---
 
-## 3. Authentication — Azure Entra ID
+## 3. Authentication
 
-The API validates JWT tokens issued by an Entra ID App Registration. For local development you have two options:
+The API supports two authentication modes via `Authentication:Mode`:
 
-### Option A: Use a dev Entra ID tenant (recommended)
+- `DevJwt` (local development; default in `appsettings.Development.json`)
+- `AzureAd` (real Entra ID integration)
 
-1. Ask the team for the **dev tenant App Registration** details (Client ID, Tenant ID).
-2. Set the following in `appsettings.Development.json` or user secrets:
+### Option A: Local development with `dotnet user-jwts`
+
+This mode does not require Azure app registration and is recommended while developing endpoints.
+
+1. Ensure `Authentication:Mode` is `DevJwt` in `appsettings.Development.json`.
+2. Generate a token with role + user id claims:
+
+```bash
+dotnet user-jwts create --project src/backend/EventHub.Api --role Organizer --claim "oid=dev-user-1" --output token
+```
+
+3. Use the token as a Bearer token for protected endpoints:
+
+```bash
+curl -H "Authorization: Bearer <PASTE_TOKEN_HERE>" http://localhost:5165/api/events
+```
+
+Useful commands:
+
+```bash
+dotnet user-jwts list --project src/backend/EventHub.Api
+dotnet user-jwts remove --project src/backend/EventHub.Api --all
+```
+
+### Option B: Real Azure Entra ID
+
+Set `Authentication:Mode` to `AzureAd` and configure:
 
 ```json
 {
   "AzureAd": {
-    "TenantId": "<dev-tenant-id>",
-    "ClientId": "<dev-app-client-id>",
-    "Audience": "api://<dev-app-client-id>"
+    "Authority": "https://login.microsoftonline.com/<tenant-id>/v2.0",
+    "Audience": "api://<app-client-id>"
   }
 }
 ```
 
-3. Obtain a token using the Azure CLI:
-
-```bash
-az login --tenant <dev-tenant-id>
-az account get-access-token --resource api://<dev-app-client-id> --query accessToken -o tsv
-```
-
-4. Use the token as a Bearer header in Postman / `.http` files.
-
-### Option B: Bypass auth locally (dev-only flag)
-
-> ⚠️ Never commit this setting or use it outside of local development.
-
-In `appsettings.Development.json`:
-
-```json
-{
-  "Auth": {
-    "DisableForLocalDevelopment": true
-  }
-}
-```
-
-When this flag is set, the API accepts requests without a token and injects a fake user identity. The implementation is gated behind `#if DEBUG` / environment checks.
+Then request an access token for your API and use it as a Bearer token.
 
 ---
 
@@ -180,6 +182,20 @@ dotnet run
 Swagger UI is available at: `https://localhost:5001/swagger`
 
 Sample HTTP requests are in [src/backend/EventHub.Api/EventHub.Api.http](../../src/backend/EventHub.Api/EventHub.Api.http).
+
+### API request files (`.http`)
+
+Use VS Code REST Client support to run requests directly from:
+
+- [src/backend/EventHub.Api/EventHub.Api.http](../../src/backend/EventHub.Api/EventHub.Api.http) — full endpoint catalog (including negative checks)
+- [src/backend/EventHub.Api/EventHub.Api.happy-path.http](../../src/backend/EventHub.Api/EventHub.Api.happy-path.http) — step-by-step end-to-end flow
+
+Before running requests:
+
+1. Ensure the API is running (`dotnet run` in `src/backend/EventHub.Api`).
+2. Generate a local JWT (`dotnet user-jwts create ...`) and set `@bearerToken`.
+3. For RSVP requests, set `@rawToken` from your invitation delivery/log source.
+4. Run create/send requests first so `eventId` and `invitationId` variables are auto-populated.
 
 ---
 
