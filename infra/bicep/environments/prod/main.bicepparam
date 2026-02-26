@@ -17,3 +17,18 @@ param extraTags = {
 // CI: set as a GitHub Actions environment secret.
 // Local: $env:SQL_ADMIN_PASSWORD = '<password>' before deploying.
 param sqlAdminPassword = readEnvironmentVariable('SQL_ADMIN_PASSWORD', '')
+
+param appSettings = [
+  {
+    name: 'Authentication__Mode'
+    value: 'AzureAd'
+  }
+  {
+    name: 'AzureAd__Authority'
+    value: 'https://login.microsoftonline.com/<YOUR_TENANT_ID>/v2.0'
+  }
+  {
+    name: 'AzureAd__Audience'
+    value: 'api://<DEV_CLIENT_ID>'
+  }
+]
