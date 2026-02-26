@@ -105,6 +105,62 @@ az group create --name eventhub-prod-rg --location eastus
 
 Resource groups are also created automatically by the GitHub Actions workflows if they don't exist.
 
+### Entra ID App Registration (per environment)
+
+Create one app registration per environment (**dev**, **test**, **prod**). These are stable — create once, never recreate.
+
+#### 1. Register the application
+
+1. Go to **Azure Portal → Entra ID → App registrations → New registration**
+2. Name: `EventHub-Api-<env>` (e.g. `EventHub-Api-dev`)
+3. Supported account types: **Accounts in this organizational directory only (Single tenant)**
+4. Redirect URI: leave blank — this is an API, not a web app
+5. Click **Register**
+6. Note the **Application (client) ID** and **Directory (tenant) ID** from the Overview page
+
+#### 2. Expose an API (set Application ID URI)
+
+1. In the app registration → **Expose an API**
+2. Click **Add** next to Application ID URI
+3. Accept the default: `api://<CLIENT_ID>`
+4. Click **Save**
+
+#### 3. Define App Roles
+
+In **App roles → Create app role** — create two roles:
+
+| Display name | Allowed member types | Value | Description |
+|---|---|---|---|
+| Organizer | Users/Groups | `Organizer` | Can create and manage events |
+| Admin | Users/Groups | `Admin` | Full administrative access |
+
+#### 4. Assign users to roles
+
+1. Go to **Enterprise applications → EventHub-Api-\<env> → Users and groups → Add user/group**
+2. Assign users or groups to `Organizer` or `Admin` as needed
+
+#### 5. Configure the App Service
+
+In **App Service → Configuration → Application settings**, add:
+
+| Name | Value |
+|---|---|
+| `Authentication__Mode` | `AzureAd` |
+| `AzureAd__Authority` | `https://login.microsoftonline.com/<TENANT_ID>/v2.0` |
+| `AzureAd__Audience` | `api://<CLIENT_ID>` |
+
+Or pass them via the Bicep environment parameter files in `infra/bicep/environments/<env>/`.
+
+#### Environment reference
+
+| Environment | App Registration name | Notes |
+|---|---|---|
+| dev | `EventHub-Api-dev` | Add tenant/client IDs here after creation |
+| test | `EventHub-Api-test` | — |
+| prod | `EventHub-Api-prod` | — |
+
+---
+
 ### GitHub Actions OIDC Setup
 
 Required once per repository. See [Azure OIDC documentation](https://learn.microsoft.com/azure/developer/github/connect-from-azure-openid-connect) for details.
@@ -114,6 +170,7 @@ Required once per repository. See [Azure OIDC documentation](https://learn.micro
 3. Add federated credentials for each GitHub environment (`dev`, `test`, `prod`) and pull requests
 4. Assign the **Contributor** role to the service principal on each resource group
 5. Assign the **User Access Administrator** role to the service principal on each resource group (required to create Key Vault RBAC role assignments during deployment)
+
    ```powershell
    az role assignment create `
      --assignee-object-id <sp-object-id> `
@@ -121,6 +178,7 @@ Required once per repository. See [Azure OIDC documentation](https://learn.micro
      --role "User Access Administrator" `
      --scope "/subscriptions/<subscription-id>/resourceGroups/<resource-group>"
    ```
+
 6. Add repository secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
 7. Add the following secret to **each GitHub environment** (`dev`, `test`, `prod`):
 
