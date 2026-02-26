@@ -39,20 +39,26 @@ Infrastructure deploys automatically via [deploy-infra.yml](../../.github/workfl
 
 ### Manual
 
-```bash
-# Replace <env> with dev | test | prod
-az deployment group create \
-  --resource-group eventhub-<env>-rg \
-  --template-file infra/bicep/main.bicep \
+`SQL_ADMIN_PASSWORD` must be set as an environment variable before running — never hard-code it.
+
+```powershell
+# PowerShell — replace <env> with dev | test | prod
+$env:SQL_ADMIN_PASSWORD = '<your-password>'
+
+az deployment group create `
+  --resource-group eventhub-<env>-rg `
+  --template-file infra/bicep/main.bicep `
   --parameters infra/bicep/environments/<env>/main.bicepparam
 ```
 
 ### Preview changes before deploying
 
-```bash
-az deployment group what-if \
-  --resource-group eventhub-<env>-rg \
-  --template-file infra/bicep/main.bicep \
+```powershell
+$env:SQL_ADMIN_PASSWORD = '<your-password>'
+
+az deployment group what-if `
+  --resource-group eventhub-<env>-rg `
+  --template-file infra/bicep/main.bicep `
   --parameters infra/bicep/environments/<env>/main.bicepparam
 ```
 
@@ -106,8 +112,21 @@ Required once per repository. See [Azure OIDC documentation](https://learn.micro
 1. Create an app registration in Entra ID
 2. Create a service principal: `az ad sp create --id <appId>`
 3. Add federated credentials for each GitHub environment (`dev`, `test`, `prod`) and pull requests
-4. Assign the Contributor role to the service principal on your subscription
-5. Add repository secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
+4. Assign the **Contributor** role to the service principal on each resource group
+5. Assign the **User Access Administrator** role to the service principal on each resource group (required to create Key Vault RBAC role assignments during deployment)
+   ```powershell
+   az role assignment create `
+     --assignee-object-id <sp-object-id> `
+     --assignee-principal-type ServicePrincipal `
+     --role "User Access Administrator" `
+     --scope "/subscriptions/<subscription-id>/resourceGroups/<resource-group>"
+   ```
+6. Add repository secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
+7. Add the following secret to **each GitHub environment** (`dev`, `test`, `prod`):
+
+| Secret | Description |
+|---|---|
+| `SQL_ADMIN_PASSWORD` | SQL Server administrator password. Must match the password used when the SQL Server was first created. |
 
 ---
 
@@ -137,5 +156,8 @@ Swap back to a previous deployment slot or redeploy a previous build artifact fr
 |---|---|---|
 | `Failed to parse .bicepparam` | Azure CLI < 2.47 | `az upgrade` |
 | `No matching federated identity record` | OIDC subject mismatch | Check federated credential subject matches the GitHub environment name |
-| `No subscriptions found` | Service principal missing role assignment | Assign Contributor role on the subscription |
+| `No subscriptions found` | Service principal missing role assignment | Assign Contributor role on the resource group |
 | `always_on cannot be set for Free tier` | `alwaysOn: true` on F1 plan | Bicep sets `alwaysOn` automatically based on SKU — ensure `skuName = 'F1'` |
+| `Authorization failed for roleAssignments/write` | Service principal missing User Access Administrator | Assign User Access Administrator on each resource group (see OIDC setup step 5) |
+| `RoleDefinitionDoesNotExist` | Wrong built-in role GUID | Run `az role definition list --name "Key Vault Secrets User" --query "[0].name" -o tsv` to get the correct GUID for your tenant |
+| App Service connection string unresolved | KV reference not working | Check App Service identity is enabled, Key Vault RBAC role assignment exists, and secret name matches `sql-connection-string` |

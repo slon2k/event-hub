@@ -34,33 +34,33 @@ Notifications are delivered **asynchronously** using the Outbox pattern combined
  Client          API Handler         DB (SQL)         OutboxFunction    Service Bus      EmailFunction     ACS Email
    │                 │                  │                   │                │                 │               │
    │  POST           │                  │                   │                │                 │               │
-   │ /invitations ──▶│                  │                   │                │                 │               │
+   │ /invitations ──>│                  │                   │                │                 │               │
    │                 │ BEGIN TRANSACTION│                   │                │                 │               │
-   │                 │──────────────────▶                   │                │                 │               │
+   │                 │──────────────────>                   │                │                 │               │
    │                 │ INSERT Invitation│                   │                │                 │               │
-   │                 │──────────────────▶                   │                │                 │               │
+   │                 │──────────────────>                   │                │                 │               │
    │                 │ INSERT OutboxMsg │                   │                │                 │               │
    │                 │ (InvitationSent) │                   │                │                 │               │
-   │                 │──────────────────▶                   │                │                 │               │
+   │                 │──────────────────>                   │                │                 │               │
    │                 │ COMMIT           │                   │                │                 │               │
-   │                 │──────────────────▶                   │                │                 │               │
-   │  201 Created ◀──│                  │                   │                │                 │               │
+   │                 │──────────────────>                   │                │                 │               │
+   │  201 Created <──│                  │                   │                │                 │               │
    │                 │                  │                   │                │                 │               │
    │                 │                  │   Timer fires     │                │                 │               │
    │                 │                  │  (every 10s)      │                │                 │               │
-   │                 │                  │◀──────────────────│                │                 │               │
+   │                 │                  │<──────────────────│                │                 │               │
    │                 │                  │ SELECT unpublished│                │                 │               │
-   │                 │                  │──────────────────▶│                │                 │               │
+   │                 │                  │──────────────────>│                │                 │               │
    │                 │                  │                   │ Publish msg    │                 │               │
-   │                 │                  │                   │───────────────▶│                 │               │
+   │                 │                  │                   │───────────────>│                 │               │
    │                 │                  │ UPDATE PublishedAt│                │                 │               │
-   │                 │                  │◀──────────────────│                │                 │               │
+   │                 │                  │<──────────────────│                │                 │               │
    │                 │                  │                   │  ServiceBus    │                 │               │
-   │                 │                  │                   │  triggers ─────┼────────────────▶│               │
+   │                 │                  │                   │  triggers ─────┼────────────────>│               │
    │                 │                  │                   │                │                 │ Send email    │
-   │                 │                  │                   │                │                 │──────────────▶│
-   │                 │                  │                   │                │                 │  Delivered ◀──│
-   │                 │                  │                   │                │  Complete msg ◀─│               │
+   │                 │                  │                   │                │                 │──────────────>│
+   │                 │                  │                   │                │                 │  Delivered <──│
+   │                 │                  │                   │                │  Complete msg <─│               │
 ```
 
 ---
@@ -74,13 +74,13 @@ The flow is identical structurally, but:
 
 ```
  Client          API Handler         DB (SQL)         OutboxFunction    Service Bus      EmailFunction     ACS Email
-   │  DELETE /events/{id} ──▶│         │                   │                │                 │               │
+   │  DELETE /events/{id} ──> │         │                   │                │                 │               │
    │                 │ BEGIN TRANSACTION                    │                │                 │               │
    │                 │ UPDATE Event → Cancelled             │                │                 │               │
    │                 │ INSERT OutboxMsg (EventCancelled)    │                │                 │               │
    │                 │ COMMIT                               │                │                 │               │
-   │  204 No Content ◀──│               │                  │                │                 │               │
-   │                 │                  │  (same Timer/ServiceBus flow as above) ...           │               │
+   │  204 No Content <── │               │                  │                │                 │               │
+   │                 │                   │  (same Timer/ServiceBus flow as above) ...           │               │
 ```
 
 ---

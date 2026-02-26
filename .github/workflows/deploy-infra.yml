@@ -29,16 +29,16 @@ permissions:
 
 env:
   TEMPLATE_FILE: infra/bicep/main.bicep
+  AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
 
 jobs:
-  # ── What-if preview on pull requests ─────────────────────────────────────
+  # ── What-if preview on pull requests ────────────────────────────────────
   # PR → development: preview dev
-  # PR → master:      preview test
-  what-if:
-    name: What-if (${{ github.base_ref == 'master' && 'test' || 'dev' }})
-    if: github.event_name == 'pull_request'
+  what-if-dev:
+    name: What-if – dev
+    if: github.event_name == 'pull_request' && github.base_ref == 'development'
     runs-on: ubuntu-latest
-    environment: ${{ github.base_ref == 'master' && 'test' || 'dev' }}
+    environment: dev
     steps:
       - uses: actions/checkout@v4
 
@@ -49,28 +49,59 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Set target environment
-        run: |
-          ENV=${{ github.base_ref == 'master' && 'test' || 'dev' }}
-          echo "ENV=$ENV" >> $GITHUB_ENV
-          echo "RESOURCE_GROUP=eventhub-${ENV}-rg" >> $GITHUB_ENV
+      - name: Ensure resource group exists
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az group create --name eventhub-dev-rg --location ${{ env.AZURE_LOCATION }}
+
+      - name: What-if
+        uses: azure/cli@v2
+        env:
+          SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az deployment group what-if \
+              --resource-group eventhub-dev-rg \
+              --template-file ${{ env.TEMPLATE_FILE }} \
+              --parameters infra/bicep/environments/dev/main.bicepparam
+
+  # PR → master: preview test
+  what-if-test:
+    name: What-if – test
+    if: github.event_name == 'pull_request' && github.base_ref == 'master'
+    runs-on: ubuntu-latest
+    environment: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Ensure resource group exists
         uses: azure/cli@v2
         with:
           azcliversion: latest
           inlineScript: |
-            az group create --name ${{ env.RESOURCE_GROUP }} --location eastus
+            az group create --name eventhub-test-rg --location ${{ env.AZURE_LOCATION }}
 
       - name: What-if
         uses: azure/cli@v2
+        env:
+          SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
         with:
           azcliversion: latest
           inlineScript: |
             az deployment group what-if \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --resource-group eventhub-test-rg \
               --template-file ${{ env.TEMPLATE_FILE }} \
-              --parameters infra/bicep/environments/${{ env.ENV }}/main.bicepparam
+              --parameters infra/bicep/environments/test/main.bicepparam
 
   # ── Deploy to dev on push to development ────────────────────────────────
   deploy-dev:
@@ -93,10 +124,12 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
-            az group create --name eventhub-dev-rg --location eastus
+              az group create --name eventhub-dev-rg --location ${{ env.AZURE_LOCATION }}
 
       - name: Deploy – dev
         uses: azure/cli@v2
+        env:
+          SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
         with:
           azcliversion: latest
           inlineScript: |
@@ -126,10 +159,12 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
-            az group create --name eventhub-test-rg --location eastus
+              az group create --name eventhub-test-rg --location ${{ env.AZURE_LOCATION }}
 
       - name: Deploy – test
         uses: azure/cli@v2
+        env:
+          SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
         with:
           azcliversion: latest
           inlineScript: |
@@ -165,10 +200,12 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
-            az group create --name eventhub-prod-rg --location eastus
+              az group create --name eventhub-prod-rg --location ${{ env.AZURE_LOCATION }}
 
       - name: Deploy – prod
         uses: azure/cli@v2
+        env:
+          SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
         with:
           azcliversion: latest
           inlineScript: |
