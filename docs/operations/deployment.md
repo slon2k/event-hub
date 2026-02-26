@@ -5,7 +5,7 @@ This document describes how to deploy the EventHub platform infrastructure and A
 ## Prerequisites
 
 | Tool | Minimum version | Install |
-|---|---|---|
+| --- | --- | --- |
 | Azure CLI | 2.47 | [Install guide](https://learn.microsoft.com/cli/azure/install-azure-cli) |
 | Bicep CLI | 0.18 (bundled with Azure CLI) | `az bicep install` |
 | Git | Any | — |
@@ -20,7 +20,7 @@ az account set --subscription "<subscription-id-or-name>"
 ## Environments
 
 | Environment | Resource Group | Branch |
-|---|---|---|
+| --- | --- | --- |
 | dev | `eventhub-dev-rg` | `development` |
 | test | `eventhub-test-rg` | `master` |
 | prod | `eventhub-prod-rg` | `master` (manual only) |
@@ -37,7 +37,7 @@ Infrastructure deploys automatically via [deploy-infra.yml](../../.github/workfl
 - Push to `master` → deploys to **test**
 - Manual trigger (GitHub Actions UI) → deploys to **prod**
 
-### Manual
+### Manual infrastructure deployment
 
 `SQL_ADMIN_PASSWORD` must be set as an environment variable before running — never hard-code it.
 
@@ -66,7 +66,7 @@ az deployment group what-if `
 
 ## API Deployment
 
-### Automatic (recommended)
+### Automatic deployment (recommended)
 
 API deploys automatically via [deploy-api.yml](../../.github/workflows/deploy-api.yml):
 
@@ -74,7 +74,7 @@ API deploys automatically via [deploy-api.yml](../../.github/workflows/deploy-ap
 - Push to `master` → builds, tests, deploys to **test**
 - Manual trigger (GitHub Actions UI, `master` branch only) → deploys to **prod**
 
-### Manual
+### Manual API deployment
 
 ```bash
 # Build and publish
@@ -130,7 +130,7 @@ Create one app registration per environment (**dev**, **test**, **prod**). These
 In **App roles → Create app role** — create two roles:
 
 | Display name | Allowed member types | Value | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Organizer | Users/Groups | `Organizer` | Can create and manage events |
 | Admin | Users/Groups | `Admin` | Full administrative access |
 
@@ -144,7 +144,7 @@ In **App roles → Create app role** — create two roles:
 In **App Service → Configuration → Application settings**, add:
 
 | Name | Value |
-|---|---|
+| --- | --- |
 | `Authentication__Mode` | `AzureAd` |
 | `AzureAd__Authority` | `https://login.microsoftonline.com/<TENANT_ID>/v2.0` |
 | `AzureAd__Audience` | `api://<CLIENT_ID>` |
@@ -154,7 +154,7 @@ Or pass them via the Bicep environment parameter files in `infra/bicep/environme
 #### Environment reference
 
 | Environment | App Registration name | Notes |
-|---|---|---|
+| --- | --- | --- |
 | dev | `EventHub-Api-dev` | Add tenant/client IDs here after creation |
 | test | `EventHub-Api-test` | — |
 | prod | `EventHub-Api-prod` | — |
@@ -183,7 +183,7 @@ Required once per repository. See [Azure OIDC documentation](https://learn.micro
 7. Add the following secret to **each GitHub environment** (`dev`, `test`, `prod`):
 
 | Secret | Description |
-|---|---|
+| --- | --- |
 | `SQL_ADMIN_PASSWORD` | SQL Server administrator password. Must match the password used when the SQL Server was first created. |
 
 ---
@@ -211,7 +211,7 @@ Swap back to a previous deployment slot or redeploy a previous build artifact fr
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
-|---|---|---|
+| --- | --- | --- |
 | `Failed to parse .bicepparam` | Azure CLI < 2.47 | `az upgrade` |
 | `No matching federated identity record` | OIDC subject mismatch | Check federated credential subject matches the GitHub environment name |
 | `No subscriptions found` | Service principal missing role assignment | Assign Contributor role on the resource group |
