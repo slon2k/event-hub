@@ -110,6 +110,9 @@ jobs:
             --start-ip-address "$RUNNER_IP" \
             --end-ip-address "$RUNNER_IP"
 
+      - name: Restore
+        run: dotnet restore
+
       - name: Apply EF migrations
         shell: bash
         run: |
@@ -171,6 +174,9 @@ jobs:
             --name github-actions-runner \
             --start-ip-address "$RUNNER_IP" \
             --end-ip-address "$RUNNER_IP"
+
+      - name: Restore
+        run: dotnet restore
 
       - name: Apply EF migrations
         shell: bash
@@ -239,6 +245,9 @@ jobs:
             --name github-actions-runner \
             --start-ip-address "$RUNNER_IP" \
             --end-ip-address "$RUNNER_IP"
+
+      - name: Restore
+        run: dotnet restore
 
       - name: Apply EF migrations
         shell: bash
