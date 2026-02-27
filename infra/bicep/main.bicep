@@ -63,7 +63,8 @@ param keyVaultName string = toLower('${take(baseName, 8)}-${environment}-kv-${ta
 
 // Build the Key Vault URI from the deterministic vault name.
 // This avoids a circular dependency between the api and keyVault modules.
-var kvBaseUri = 'https://${keyVaultName}.${az.environment().suffixes.keyvaultDns}/'
+// Note: az.environment().suffixes.keyvaultDns already includes a leading dot (e.g. ".vault.azure.net").
+var kvBaseUri = 'https://${keyVaultName}${az.environment().suffixes.keyvaultDns}/'
 
 module plan 'modules/appServicePlan.bicep' = {
   name: 'appServicePlan'
