@@ -1,0 +1,8 @@
+@host = https://eventhub-dev-api.azurewebsites.net
+@bearerToken = <PASTE_USER_JWTS_TOKEN>
+
+
+# Health check
+GET {{host}}/healthz
+
+
