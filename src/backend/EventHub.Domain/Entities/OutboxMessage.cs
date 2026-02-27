@@ -3,9 +3,8 @@ using EventHub.Domain.Common;
 namespace EventHub.Domain.Entities;
 
 /// <summary>
-/// Durable staging area for domain event payloads that must be published
-/// to Azure Service Bus. Written in the same EF Core transaction as the
-/// domain change — this is the core of the Outbox pattern (ADR 0003).
+/// Durable staging area for domain event payloads that must be published to Azure Service Bus. 
+/// Written in the same EF Core transaction as the domain change
 /// </summary>
 public sealed class OutboxMessage : Entity
 {
