@@ -66,10 +66,202 @@ jobs:
           path: publish/api
           retention-days: 1
 
+  # ── Run DB migrations for dev on push to development ─────────────────────
+  migrate-dev:
+    name: Migrate DB – dev
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/development'
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      RESOURCE_GROUP: eventhub-dev-rg
+      SQL_SERVER_NAME: eventhub-dev-sql
+      SQL_DATABASE_NAME: eventhub-dev-db
+      SQL_ADMIN_USER: sqladmin
+      SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install EF Core CLI
+        run: dotnet tool install --global dotnet-ef --version 10.*
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Open SQL firewall for runner
+        id: fw-open
+        shell: bash
+        run: |
+          RUNNER_IP=$(curl -s https://api.ipify.org)
+          echo "runner_ip=$RUNNER_IP" >> "$GITHUB_OUTPUT"
+          az sql server firewall-rule create \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "$SQL_SERVER_NAME" \
+            --name github-actions-runner \
+            --start-ip-address "$RUNNER_IP" \
+            --end-ip-address "$RUNNER_IP"
+
+      - name: Apply EF migrations
+        shell: bash
+        run: |
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          CONNECTION_STRING="Server=tcp:${SQL_SERVER_NAME}.database.windows.net,1433;Initial Catalog=${SQL_DATABASE_NAME};User ID=${SQL_ADMIN_USER};Password=${SQL_ADMIN_PASSWORD};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+          dotnet ef database update \
+            --project src/backend/EventHub.Infrastructure \
+            --startup-project src/backend/EventHub.Api \
+            -- --connection="$CONNECTION_STRING"
+
+      - name: Close SQL firewall for runner
+        if: always()
+        run: |
+          az sql server firewall-rule delete \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "$SQL_SERVER_NAME" \
+            --name github-actions-runner
+
+  # ── Run DB migrations for test on push to master ─────────────────────────
+  migrate-test:
+    name: Migrate DB – test
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment: test
+    env:
+      RESOURCE_GROUP: eventhub-test-rg
+      SQL_SERVER_NAME: eventhub-test-sql
+      SQL_DATABASE_NAME: eventhub-test-db
+      SQL_ADMIN_USER: sqladmin
+      SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install EF Core CLI
+        run: dotnet tool install --global dotnet-ef --version 10.*
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Open SQL firewall for runner
+        id: fw-open
+        shell: bash
+        run: |
+          RUNNER_IP=$(curl -s https://api.ipify.org)
+          echo "runner_ip=$RUNNER_IP" >> "$GITHUB_OUTPUT"
+          az sql server firewall-rule create \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "$SQL_SERVER_NAME" \
+            --name github-actions-runner \
+            --start-ip-address "$RUNNER_IP" \
+            --end-ip-address "$RUNNER_IP"
+
+      - name: Apply EF migrations
+        shell: bash
+        run: |
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          CONNECTION_STRING="Server=tcp:${SQL_SERVER_NAME}.database.windows.net,1433;Initial Catalog=${SQL_DATABASE_NAME};User ID=${SQL_ADMIN_USER};Password=${SQL_ADMIN_PASSWORD};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+          dotnet ef database update \
+            --project src/backend/EventHub.Infrastructure \
+            --startup-project src/backend/EventHub.Api \
+            -- --connection="$CONNECTION_STRING"
+
+      - name: Close SQL firewall for runner
+        if: always()
+        run: |
+          az sql server firewall-rule delete \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "$SQL_SERVER_NAME" \
+            --name github-actions-runner
+
+  # ── Run DB migrations for prod on manual trigger only ────────────────────
+  migrate-prod:
+    name: Migrate DB – prod
+    needs: build
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      RESOURCE_GROUP: eventhub-prod-rg
+      SQL_SERVER_NAME: eventhub-prod-sql
+      SQL_DATABASE_NAME: eventhub-prod-db
+      SQL_ADMIN_USER: sqladmin
+      SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify branch is master
+        if: github.ref != 'refs/heads/master'
+        run: |
+          echo "Prod migrations must be triggered from master, not ${{ github.ref }}"
+          exit 1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install EF Core CLI
+        run: dotnet tool install --global dotnet-ef --version 10.*
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Open SQL firewall for runner
+        id: fw-open
+        shell: bash
+        run: |
+          RUNNER_IP=$(curl -s https://api.ipify.org)
+          echo "runner_ip=$RUNNER_IP" >> "$GITHUB_OUTPUT"
+          az sql server firewall-rule create \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "$SQL_SERVER_NAME" \
+            --name github-actions-runner \
+            --start-ip-address "$RUNNER_IP" \
+            --end-ip-address "$RUNNER_IP"
+
+      - name: Apply EF migrations
+        shell: bash
+        run: |
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          CONNECTION_STRING="Server=tcp:${SQL_SERVER_NAME}.database.windows.net,1433;Initial Catalog=${SQL_DATABASE_NAME};User ID=${SQL_ADMIN_USER};Password=${SQL_ADMIN_PASSWORD};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+          dotnet ef database update \
+            --project src/backend/EventHub.Infrastructure \
+            --startup-project src/backend/EventHub.Api \
+            -- --connection="$CONNECTION_STRING"
+
+      - name: Close SQL firewall for runner
+        if: always()
+        run: |
+          az sql server firewall-rule delete \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "$SQL_SERVER_NAME" \
+            --name github-actions-runner
+
   # ── Deploy to dev on push to development ─────────────────────────────────
   deploy-dev:
     name: Deploy – dev
-    needs: build
+    needs: [build, migrate-dev]
     if: github.event_name == 'push' && github.ref == 'refs/heads/development'
     runs-on: ubuntu-latest
     environment: dev
@@ -96,7 +288,7 @@ jobs:
   # ── Deploy to test on push to master ─────────────────────────────────────
   deploy-test:
     name: Deploy – test
-    needs: build
+    needs: [build, migrate-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment: test
@@ -123,7 +315,7 @@ jobs:
   # ── Deploy to prod on manual trigger only ────────────────────────────────
   deploy-prod:
     name: Deploy – prod
-    needs: build
+    needs: [build, migrate-prod]
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: prod

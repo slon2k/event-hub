@@ -70,9 +70,9 @@ az deployment group what-if `
 
 API deploys automatically via [deploy-api.yml](../../.github/workflows/deploy-api.yml):
 
-- Push to `development` → builds, tests, deploys to **dev**
-- Push to `master` → builds, tests, deploys to **test**
-- Manual trigger (GitHub Actions UI, `master` branch only) → deploys to **prod**
+- Push to `development` → builds, tests, runs DB migrations, deploys to **dev**
+- Push to `master` → builds, tests, runs DB migrations, deploys to **test**
+- Manual trigger (GitHub Actions UI, `master` branch only) → builds, tests, runs DB migrations, deploys to **prod**
 
 ### Manual API deployment
 
