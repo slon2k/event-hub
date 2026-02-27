@@ -25,7 +25,8 @@ internal sealed class EventHubDbContextFactory : IDesignTimeDbContextFactory<Eve
                 "Unable to resolve design-time connection string. Provide --connection=<value>, set ConnectionStrings__DefaultConnection, or configure ConnectionStrings:DefaultConnection in API appsettings.");
 
         var options = new DbContextOptionsBuilder<EventHubDbContext>()
-            .UseSqlServer(connectionString)
+            .UseSqlServer(connectionString, sql =>
+                sql.EnableRetryOnFailure(maxRetryCount: 5))
             .Options;
 
         return new EventHubDbContext(options);
