@@ -115,6 +115,9 @@ jobs:
       - name: Restore
         run: dotnet restore
 
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
       - name: Apply EF migrations
         shell: bash
         run: |
@@ -123,6 +126,7 @@ jobs:
           dotnet ef database update \
             --project src/backend/EventHub.Infrastructure \
             --startup-project src/backend/EventHub.Api \
+            --no-build \
             -- --connection="$CONNECTION_STRING"
 
       - name: Close SQL firewall for runner
@@ -180,6 +184,9 @@ jobs:
       - name: Restore
         run: dotnet restore
 
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
       - name: Apply EF migrations
         shell: bash
         run: |
@@ -188,6 +195,7 @@ jobs:
           dotnet ef database update \
             --project src/backend/EventHub.Infrastructure \
             --startup-project src/backend/EventHub.Api \
+            --no-build \
             -- --connection="$CONNECTION_STRING"
 
       - name: Close SQL firewall for runner
@@ -251,6 +259,9 @@ jobs:
       - name: Restore
         run: dotnet restore
 
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
       - name: Apply EF migrations
         shell: bash
         run: |
@@ -259,6 +270,7 @@ jobs:
           dotnet ef database update \
             --project src/backend/EventHub.Infrastructure \
             --startup-project src/backend/EventHub.Api \
+            --no-build \
             -- --connection="$CONNECTION_STRING"
 
       - name: Close SQL firewall for runner
