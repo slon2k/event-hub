@@ -88,3 +88,4 @@ Content-Type: application/json
 # 7) Cleanup (optional): cancel event
 POST {{host}}/api/events/{{eventId}}/cancel
 Authorization: Bearer {{bearerToken}}
+
