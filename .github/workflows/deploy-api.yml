@@ -126,6 +126,7 @@ jobs:
           dotnet ef database update \
             --project src/backend/EventHub.Infrastructure \
             --startup-project src/backend/EventHub.Api \
+            --configuration Release \
             --no-build \
             -- --connection="$CONNECTION_STRING"
 
@@ -195,6 +196,7 @@ jobs:
           dotnet ef database update \
             --project src/backend/EventHub.Infrastructure \
             --startup-project src/backend/EventHub.Api \
+            --configuration Release \
             --no-build \
             -- --connection="$CONNECTION_STRING"
 
@@ -270,6 +272,7 @@ jobs:
           dotnet ef database update \
             --project src/backend/EventHub.Infrastructure \
             --startup-project src/backend/EventHub.Api \
+            --configuration Release \
             --no-build \
             -- --connection="$CONNECTION_STRING"
 
