@@ -21,7 +21,10 @@ param serviceBusConnectionStringSecretUri string
 param sqlConnectionStringSecretUri string
 
 @description('Key Vault secret URI for the Azure Functions storage account connection string.')
-param storageConnectionStringSecretUri string
+param storageConnectionStringSecretUri string = ''
+
+@description('Storage account name for managed identity access (preferred over connection string).')
+param storageAccountName string = ''
 
 @description('Application Insights connection string for telemetry. Leave empty to disable.')
 param applicationInsightsConnectionString string = ''
@@ -69,11 +72,6 @@ var defaultAppSettings = [
     name: 'FUNCTIONS_WORKER_RUNTIME'
     value: 'dotnet-isolated'
   }
-  // Storage (required by Functions runtime for distributed locks and blob triggers)
-  {
-    name: 'AzureWebJobsStorage'
-    value: '@Microsoft.KeyVault(SecretUri=${storageConnectionStringSecretUri})'
-  }
   // Service Bus
   {
     name: 'ServiceBusConnectionString'
@@ -99,6 +97,26 @@ var defaultAppSettings = [
   }
 ]
 
+// Storage — use managed identity when storageAccountName is provided to avoid the
+// KV-reference bootstrapping race: the Functions runtime needs storage before KV refs resolve.
+var storageSettings = !empty(storageAccountName)
+  ? [
+      {
+        name: 'AzureWebJobsStorage__accountName'
+        value: storageAccountName
+      }
+      {
+        name: 'AzureWebJobsStorage__credential'
+        value: 'managedidentity'
+      }
+    ]
+  : [
+      {
+        name: 'AzureWebJobsStorage'
+        value: '@Microsoft.KeyVault(SecretUri=${storageConnectionStringSecretUri})'
+      }
+    ]
+
 var aiSettings = !empty(applicationInsightsConnectionString)
   ? [
       {
@@ -108,7 +126,7 @@ var aiSettings = !empty(applicationInsightsConnectionString)
     ]
   : []
 
-var effectiveAppSettings = concat(defaultAppSettings, aiSettings, appSettings)
+var effectiveAppSettings = concat(defaultAppSettings, storageSettings, aiSettings, appSettings)
 
 resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   name: functionAppName

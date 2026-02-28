@@ -47,6 +47,6 @@ param functionAppSettings = [
   }
   {
     name: 'App__BaseUrl'
-    value: 'https://eventhub-dev.azurewebsites.net'
+    value: 'https://eventhub-dev-api.azurewebsites.net'
   }
 ]

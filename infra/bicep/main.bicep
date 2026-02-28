@@ -152,6 +152,7 @@ module storage 'modules/storageAccount.bicep' = {
   params: {
     storageAccountName: storageAccountName
     location: location
+    functionAppPrincipalIds: [functionApp.outputs.functionAppPrincipalId]
     extraTags: extraTags
   }
 }
@@ -175,7 +176,7 @@ module functionApp 'modules/functionApp.bicep' = {
     keyVaultUri: kvBaseUri
     serviceBusConnectionStringSecretUri: serviceBusConnectionStringSecretUri
     sqlConnectionStringSecretUri: sqlConnectionStringSecretUri
-    storageConnectionStringSecretUri: storageConnectionStringSecretUri
+    storageAccountName: storageAccountName
     appSettings: functionAppSettings
     applicationInsightsConnectionString: appInsights.outputs.connectionString
     extraTags: extraTags
