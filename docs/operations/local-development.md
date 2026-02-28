@@ -220,7 +220,7 @@ Get a token via Postman (recommended) or by signing in with a dev user account t
 
 Click **Get New Access Token**, sign in as a dev user, then paste the token into `@bearerToken` in `EventHub.Api.dev.http`.
 
-> **Important:** Never commit real tokens to the repository. `EventHub.Api.dev.http` is in `.gitignore` for this reason — or ensure `@bearerToken` is always reset to a placeholder before committing.
+> **Important:** Never commit real tokens. `@bearerToken` in `EventHub.Api.dev.http` reads from `{{$dotenv EVENTHUB_BEARER_TOKEN}}`. Copy `.env.example` to `.env` (gitignored) and paste your token there — it will never be committed.
 
 **Dev test users** (app roles assigned in Entra ID → Enterprise applications → EventHub API → Users and groups):
 

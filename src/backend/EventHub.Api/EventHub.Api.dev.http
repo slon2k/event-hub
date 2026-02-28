@@ -1,9 +1,20 @@
-@host = https://eventhub-dev-api.azurewebsites.net
-@bearerToken = <PASTE_USER_JWTS_TOKEN>
+@host = {{$dotenv EVENTHUB_HOST}}
+@bearerToken = {{$dotenv EVENTHUB_BEARER_TOKEN}}
+@eventId = cc73311d-4955-4902-b3bc-1af22568e89f
+@invitationId = 00000000-0000-0000-0000-000000000000
+@rawToken = <PASTE_INVITATION_RAW_TOKEN>
+@missingId = 11111111-1111-1111-1111-111111111111
 
+# -------------------------------------------------------------------------
+# Health
+# -------------------------------------------------------------------------
 
-# Health check
+###
 GET {{host}}/healthz
+
+# -------------------------------------------------------------------------
+# Events
+# -------------------------------------------------------------------------
 
 ###
 # Get my events (Organizer/Admin)
@@ -11,4 +22,138 @@ GET {{host}}/api/events
 Authorization: Bearer {{bearerToken}}
 Accept: application/json
 
+###
+# Create event
+# @name createEvent
+POST {{host}}/api/events
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
 
+{
+  "title": "Dev Env Test Event",
+  "description": "EventHub Dev Session",
+  "dateTime": "2026-04-01T10:00:00+00:00",
+  "location": "Room Dev-1",
+  "capacity": 20
+}
+
+> {% client.global.set("eventId", response.body.id); %}
+
+###
+# Get event by id
+GET {{host}}/api/events/{{eventId}}
+Authorization: Bearer {{bearerToken}}
+Accept: application/json
+
+###
+# Get event — not found
+GET {{host}}/api/events/{{missingId}}
+Authorization: Bearer {{bearerToken}}
+Accept: application/json
+
+###
+# Update event
+PUT {{host}}/api/events/{{eventId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": "Dev Env Test Event (Updated)",
+  "description": "Updated via dev.http",
+  "dateTime": "2026-04-02T10:00:00+00:00",
+  "location": "Room Dev-2",
+  "capacity": 25
+}
+
+###
+# Publish event
+POST {{host}}/api/events/{{eventId}}/publish
+Authorization: Bearer {{bearerToken}}
+
+###
+# Cancel event
+POST {{host}}/api/events/{{eventId}}/cancel
+Authorization: Bearer {{bearerToken}}
+
+# -------------------------------------------------------------------------
+# Invitations
+# -------------------------------------------------------------------------
+
+###
+# Send invitation
+# @name sendInvitation
+POST {{host}}/api/events/{{eventId}}/invitations
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "participantEmail": "eh-organizer-dev@globaltradedemo.onmicrosoft.com"
+}
+
+> {% client.global.set("invitationId", response.body.id); %}
+
+###
+# Reissue invitation token
+POST {{host}}/api/events/{{eventId}}/invitations/{{invitationId}}/reissue
+Authorization: Bearer {{bearerToken}}
+
+###
+# Respond to invitation — Accept (public, no JWT)
+POST {{host}}/api/invitations/respond
+Content-Type: application/json
+
+{
+  "invitationId": "{{invitationId}}",
+  "rawToken": "{{rawToken}}",
+  "response": "Accept"
+}
+
+###
+# Respond to invitation — Decline (public, no JWT)
+POST {{host}}/api/invitations/respond
+Content-Type: application/json
+
+{
+  "invitationId": "{{invitationId}}",
+  "rawToken": "{{rawToken}}",
+  "response": "Decline"
+}
+
+###
+# Cancel invitation
+DELETE {{host}}/api/events/{{eventId}}/invitations/{{invitationId}}
+Authorization: Bearer {{bearerToken}}
+
+# -------------------------------------------------------------------------
+# Error cases
+# -------------------------------------------------------------------------
+
+###
+# 401 — no token
+GET {{host}}/api/events
+Accept: application/json
+
+###
+# 422 — create event with past date
+POST {{host}}/api/events
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": "Past Event",
+  "description": "Should fail validation",
+  "dateTime": "2020-01-01T10:00:00+00:00",
+  "location": "Room X",
+  "capacity": 10
+}
+
+###
+# 422 — invalid RSVP response value
+POST {{host}}/api/invitations/respond
+Content-Type: application/json
+
+{
+  "invitationId": "{{invitationId}}",
+  "rawToken": "{{rawToken}}",
+  "response": "Maybe"
+}
