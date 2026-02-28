@@ -122,6 +122,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     serverFarmId: consumptionPlan.id
     httpsOnly: true
     siteConfig: {
+      netFrameworkVersion: 'v10.0'
       ftpsState: 'Disabled'
       minTlsVersion: '1.3'
       appSettings: effectiveAppSettings
