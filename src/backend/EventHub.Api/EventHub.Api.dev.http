@@ -1,7 +1,7 @@
 @host = {{$dotenv EVENTHUB_HOST}}
 @bearerToken = {{$dotenv EVENTHUB_BEARER_TOKEN}}
 @eventId = 5dcd2385-b906-4edb-a797-8e263d3f6e49
-@invitationId = 00000000-0000-0000-0000-000000000000
+@invitationId = 46da1fa6-a2e0-4ab1-a250-3fbbc34306dc
 @rawToken = _svZtDTVAhaSckZrd0mobzV1OjMTw3Grx5Hcftn3uE8
 @missingId = 11111111-1111-1111-1111-111111111111
 
