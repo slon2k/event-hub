@@ -38,6 +38,13 @@ else
     {
         options.Authority = authority;
         options.Audience = audience;
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            // Support both v1.0 (sts.windows.net) and v2.0 (login.microsoftonline.com) tokens.
+            // v1.0 tokens are issued when the API app registration has accessTokenAcceptedVersion=null.
+            // v2.0 tokens are issued when accessTokenAcceptedVersion=2.
+            ValidIssuers = DeriveValidIssuers(authority)
+        };
     });
 }
 
@@ -110,6 +117,22 @@ app.MapEventEndpoints();
 app.MapInvitationEndpoints();
 
 app.Run();
+
+// Derives both v1.0 and v2.0 valid issuers from the authority URL.
+// authority format: https://login.microsoftonline.com/{tenantId}/v2.0
+static string[] DeriveValidIssuers(string authority)
+{
+    var tenantId = new Uri(authority.TrimEnd('/')).Segments
+        .Select(s => s.Trim('/'))
+        .FirstOrDefault(s => s != string.Empty && s != "v2.0")
+        ?? string.Empty;
+
+    return
+    [
+        $"https://login.microsoftonline.com/{tenantId}/v2.0",   // v2.0 tokens
+        $"https://sts.windows.net/{tenantId}/"                  // v1.0 tokens
+    ];
+}
 
 // Exposed for WebApplicationFactory in functional tests
 public partial class Program { }

@@ -5,4 +5,10 @@
 # Health check
 GET {{host}}/healthz
 
+###
+# Get my events (Organizer/Admin)
+GET {{host}}/api/events
+Authorization: Bearer {{bearerToken}}
+Accept: application/json
+
 
