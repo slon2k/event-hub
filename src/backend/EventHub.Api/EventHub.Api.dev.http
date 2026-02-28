@@ -1,8 +1,19 @@
 @host = {{$dotenv EVENTHUB_HOST}}
 @bearerToken = {{$dotenv EVENTHUB_BEARER_TOKEN}}
-@eventId = 5dcd2385-b906-4edb-a797-8e263d3f6e49
-@invitationId = 46da1fa6-a2e0-4ab1-a250-3fbbc34306dc
-@rawToken = _svZtDTVAhaSckZrd0mobzV1OjMTw3Grx5Hcftn3uE8
+@eventId = a3e91510-a857-4522-ad18-ef7e3d8e5505
+@invitationId = e5107a24-9f99-463f-9fc4-65d7b9fbe5c0
+# The raw token is never persisted — retrieve it from the OutboxMessages table after sending an invitation:
+#
+#   SELECT TOP 1
+#       JSON_VALUE(Payload, '$.InvitationId') AS InvitationId,
+#       JSON_VALUE(Payload, '$.RsvpToken')    AS RawToken,
+#       JSON_VALUE(Payload, '$.TokenExpiresAt') AS ExpiresAt
+#   FROM OutboxMessages
+#   WHERE Type LIKE '%InvitationSent%'
+#   ORDER BY CreatedAt DESC;
+#
+# Then paste the values into @invitationId and @rawToken below.
+@rawToken = 4o5AQvqFKztlWbqh057Q9KGuJ7cvt5F6kgn5-tr8SJ0
 @missingId = 11111111-1111-1111-1111-111111111111
 
 # -------------------------------------------------------------------------

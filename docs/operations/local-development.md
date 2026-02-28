@@ -196,8 +196,31 @@ Before running requests:
 
 1. Ensure the API is running (`dotnet run` in `src/backend/EventHub.Api`).
 2. Generate a local JWT (`dotnet user-jwts create ...`) and set `@bearerToken`.
-3. For RSVP requests, set `@rawToken` from your invitation delivery/log source.
-4. Run create/send requests first so `eventId` and `invitationId` variables are auto-populated.
+3. For RSVP requests, retrieve `@rawToken` from the `OutboxMessages` table (see §6.1 below).
+4. Run create/send requests first so `eventId` and `invitationId` variables are populated manually.
+
+### 6.1 Testing the invitation RSVP flow
+
+The raw RSVP token is **never persisted** — it exists only in the `InvitationSent` domain event payload, which is stored as JSON in `OutboxMessages`. To get it for local testing:
+
+```sql
+SELECT TOP 1
+    JSON_VALUE(Payload, '$.InvitationId')  AS InvitationId,
+    JSON_VALUE(Payload, '$.RsvpToken')     AS RawToken,
+    JSON_VALUE(Payload, '$.TokenExpiresAt') AS ExpiresAt
+FROM OutboxMessages
+WHERE Type LIKE '%InvitationSent%'
+ORDER BY CreatedAt DESC;
+```
+
+In a production-like environment the raw token is delivered by email. Locally:
+
+1. Send an invitation via `POST /api/events/{eventId}/invitations`.
+2. Run the query above (e.g. in SQL Server Object Explorer or Azure Data Studio) against your local SQL instance.
+3. Copy `InvitationId` → `@invitationId` and `RawToken` → `@rawToken` in your `.http` file.
+4. Call `POST /api/invitations/respond` with those values.
+
+> **Tip:** Tokens expire after 72 hours. If yours has expired, use `POST /api/events/{eventId}/invitations/{invitationId}/reissue` to get a fresh one (repeat the SQL query afterwards).
 
 ### Targeting the dev Azure environment
 
