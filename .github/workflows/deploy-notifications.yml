@@ -52,11 +52,14 @@ jobs:
       - name: Publish
         run: dotnet publish ${{ env.NOTIFICATIONS_PROJECT }} --no-build --configuration Release --output publish/notifications
 
+      - name: Zip publish output (preserve hidden dirs)
+        run: cd publish/notifications && zip -r ../notifications.zip .
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: notifications
-          path: publish/notifications
+          path: publish/notifications.zip
           retention-days: 1
 
   # ── Deploy to dev on push to development ─────────────────────────────────
@@ -71,7 +74,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: notifications
-          path: publish/notifications
+          path: publish
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -81,10 +84,14 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy – dev
-        uses: azure/functions-action@v1
+        uses: azure/cli@v2
         with:
-          app-name: eventhub-dev-func
-          package: publish/notifications
+          azcliversion: latest
+          inlineScript: |
+            az functionapp deployment source config-zip \
+              --resource-group eventhub-dev-rg \
+              --name eventhub-dev-func \
+              --src publish/notifications.zip
 
   # ── Deploy to test on push to master ─────────────────────────────────────
   deploy-test:
@@ -98,7 +105,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: notifications
-          path: publish/notifications
+          path: publish
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -108,10 +115,14 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy – test
-        uses: azure/functions-action@v1
+        uses: azure/cli@v2
         with:
-          app-name: eventhub-test-func
-          package: publish/notifications
+          azcliversion: latest
+          inlineScript: |
+            az functionapp deployment source config-zip \
+              --resource-group eventhub-test-rg \
+              --name eventhub-test-func \
+              --src publish/notifications.zip
 
   # ── Deploy to prod on manual trigger only ────────────────────────────────
   deploy-prod:
@@ -125,7 +136,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: notifications
-          path: publish/notifications
+          path: publish
 
       - name: Verify branch is master
         if: github.ref != 'refs/heads/master'
@@ -141,7 +152,11 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy – prod
-        uses: azure/functions-action@v1
+        uses: azure/cli@v2
         with:
-          app-name: eventhub-prod-func
-          package: publish/notifications
+          azcliversion: latest
+          inlineScript: |
+            az functionapp deployment source config-zip \
+              --resource-group eventhub-prod-rg \
+              --name eventhub-prod-func \
+              --src publish/notifications.zip
