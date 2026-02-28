@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Updated** | 2026-02-23 |
+| **Updated** | 2026-02-28 |
 
 ---
 
@@ -115,6 +115,8 @@ Set `Authentication:Mode` to `AzureAd` and configure:
 
 Then request an access token for your API and use it as a Bearer token.
 
+> **Note:** The API accepts both v1.0 (`sts.windows.net`) and v2.0 (`login.microsoftonline.com`) tokens. No manifest change is required.
+
 ---
 
 ## 4. Service Bus — Local Development
@@ -197,6 +199,50 @@ Before running requests:
 3. For RSVP requests, set `@rawToken` from your invitation delivery/log source.
 4. Run create/send requests first so `eventId` and `invitationId` variables are auto-populated.
 
+### Targeting the dev Azure environment
+
+Use [src/backend/EventHub.Api/EventHub.Api.dev.http](../../src/backend/EventHub.Api/EventHub.Api.dev.http) which points to `https://eventhub-dev-api.azurewebsites.net`.
+
+Get a token via Postman (recommended) or by signing in with a dev user account that has an app role assigned.
+
+**Postman OAuth2 setup** (collection → Authorization tab):
+
+| Field | Value |
+|---|---|
+| Type | OAuth 2.0 |
+| Grant Type | Authorization Code (with PKCE) |
+| Auth URL | `https://login.microsoftonline.com/8dd52aee-fd49-4e5c-ace3-0a0e907b0529/oauth2/v2.0/authorize` |
+| Access Token URL | `https://login.microsoftonline.com/8dd52aee-fd49-4e5c-ace3-0a0e907b0529/oauth2/v2.0/token` |
+| Client ID | `60e56d3c-0d3d-4262-8fe3-4edb3307dc8e` (`eventhub-dev-client`) |
+| Scope | `api://09af58ae-9706-469f-8dfe-c913428505fd/access_as_user` |
+| Callback URL | `https://oauth.pstmn.io/v1/callback` |
+| Client authentication | Send client credentials in body |
+
+Click **Get New Access Token**, sign in as a dev user, then paste the token into `@bearerToken` in `EventHub.Api.dev.http`.
+
+> **Important:** Never commit real tokens to the repository. `EventHub.Api.dev.http` is in `.gitignore` for this reason — or ensure `@bearerToken` is always reset to a placeholder before committing.
+
+**Dev test users** (app roles assigned in Entra ID → Enterprise applications → EventHub API → Users and groups):
+
+| User | Role | UPN |
+|---|---|---|
+| EventHub Organizer Dev | Organizer | `eh-organizer-dev@globaltradedemo.onmicrosoft.com` |
+
+To test with multiple roles, sign in with the corresponding account in Postman's token dialog (use a private browser window to switch accounts).
+
+**Generating tokens for multiple local personas:**
+
+```bash
+# Organizer
+dotnet user-jwts create --project src/backend/EventHub.Api --role Organizer --claim "oid=user-organizer-1" --output token
+
+# Admin
+dotnet user-jwts create --project src/backend/EventHub.Api --role Admin --claim "oid=user-admin-1" --output token
+
+# No role (expect 403 on protected endpoints)
+dotnet user-jwts create --project src/backend/EventHub.Api --claim "oid=user-guest-1" --output token
+```
+
 ---
 
 ## 7. Run the Azure Functions
@@ -244,7 +290,10 @@ dotnet run --project src/backend/EventHub.Api -- --seed
 | Problem | Solution |
 |---|---|
 | `Cannot open server requested by the login` | SQL Server container is not running — check `docker ps` |
-| `401 Unauthorized` on all requests | Check Entra ID config or enable the local dev auth bypass flag |
+| `401 Unauthorized` on all requests | Check `Authentication:Mode` in `appsettings.Development.json`; for DevJwt verify token hasn't expired (`dotnet user-jwts` tokens last 1 hour by default) |
+| `401` against dev Azure environment | Token expired — get a fresh token via Postman OAuth2 flow |
+| `403 Forbidden` against dev Azure environment | User does not have an app role assigned — add via Entra ID → Enterprise applications → EventHub API → Users and groups |
+| `Health check sql Unhealthy` | SQL Server container is not running locally, or (Azure) the Key Vault reference for `DefaultConnection` failed to resolve — check App Service Configuration |
 | `OutboxMessages` not being published | Ensure `ProcessOutboxFunction` is running (`func start` in notifications project) |
 | `Failed to connect to Service Bus` | Check `ServiceBusConnectionString` in `local.settings.json` or user secrets |
 | EF migrations out of date | Run `dotnet ef database update` after pulling changes that include new migrations |
