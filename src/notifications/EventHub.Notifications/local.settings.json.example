@@ -1,0 +1,33 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+
+    // --- Service Bus ---
+    // Full connection string for the Azure Service Bus namespace (Standard tier or higher).
+    // Create a shared dev namespace in Azure and retrieve the connection string via the Azure portal
+    // or: az servicebus namespace authorization-rule keys list ...
+    "ServiceBusConnectionString": "<your-sb-connection-string>",
+    "ServiceBus__TopicName": "notifications",
+    "ServiceBus__SubscriptionName": "email",
+
+    // --- Outbox polling ---
+    // Every 10 seconds. Format: {second} {minute} {hour} {day} {month} {day-of-week}
+    "Outbox__TimerCronExpression": "*/10 * * * * *",
+
+    // --- ACS Email ---
+    // Set UseStub=true to print emails to the console instead of sending via ACS (safe for local dev).
+    "AcsEmail__UseStub": "true",
+    "AcsEmail__ConnectionString": "<your-acs-connection-string>",
+    "AcsEmail__SenderAddress": "noreply@eventhub.example.com",
+
+    // --- App ---
+    // Base URL of the frontend; embedded in invitation email RSVP links.
+    "App__BaseUrl": "http://localhost:5165"
+  },
+  "ConnectionStrings": {
+    // Same SQL Server instance used by the API so the Functions project reads from the same OutboxMessages table.
+    "DefaultConnection": "Server=localhost,1433;Database=EventHub;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True"
+  }
+}

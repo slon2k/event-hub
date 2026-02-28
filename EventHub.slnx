@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/" />
+  <Folder Name="/src/notifications/">
+    <Project Path="src/notifications/EventHub.Notifications/EventHub.Notifications.csproj" />
+  </Folder>
   <Folder Name="/src/backend/">
     <Project Path="src/backend/EventHub.Api/EventHub.Api.csproj" />
     <Project Path="src/backend/EventHub.Application/EventHub.Application.csproj" />
