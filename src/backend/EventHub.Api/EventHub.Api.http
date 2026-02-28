@@ -19,8 +19,7 @@ Content-Type: application/json
 	"location": "Room 3A",
 	"capacity": 30
 }
-
-> {% client.global.set("eventId", response.body.id); %}
+# After running: copy the returned "id" into @eventId above
 
 ###
 # Get my events (Organizer/Admin)
@@ -88,8 +87,7 @@ Content-Type: application/json
 {
 	"participantEmail": "participant@example.com"
 }
-
-> {% client.global.set("invitationId", response.body.id); %}
+# After running: copy the returned "id" into @invitationId above
 
 ###
 # Cancel invitation (Organizer/Admin)

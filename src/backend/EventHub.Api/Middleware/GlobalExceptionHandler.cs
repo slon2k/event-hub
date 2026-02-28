@@ -3,6 +3,7 @@ using EventHub.Domain.Common;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventHub.Api.Middleware;
 
@@ -39,6 +40,18 @@ internal sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> log
                     .ToDictionary(
                         g => g.Key,
                         g => g.Select(e => e.ErrorMessage).ToArray())),
+
+            BadHttpRequestException ex => (
+                ex.StatusCode,
+                ex.Message,
+                null),
+
+            // Row was deleted or modified by another process between load and save.
+            // The client should re-fetch and retry.
+            DbUpdateConcurrencyException => (
+                StatusCodes.Status409Conflict,
+                "The resource was modified or deleted by another request. Please refresh and try again.",
+                null),
 
             _ => (
                 StatusCodes.Status500InternalServerError,

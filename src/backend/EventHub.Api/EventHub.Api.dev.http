@@ -1,8 +1,8 @@
 @host = {{$dotenv EVENTHUB_HOST}}
 @bearerToken = {{$dotenv EVENTHUB_BEARER_TOKEN}}
-@eventId = cc73311d-4955-4902-b3bc-1af22568e89f
+@eventId = 5dcd2385-b906-4edb-a797-8e263d3f6e49
 @invitationId = 00000000-0000-0000-0000-000000000000
-@rawToken = <PASTE_INVITATION_RAW_TOKEN>
+@rawToken = _svZtDTVAhaSckZrd0mobzV1OjMTw3Grx5Hcftn3uE8
 @missingId = 11111111-1111-1111-1111-111111111111
 
 # -------------------------------------------------------------------------
@@ -31,13 +31,12 @@ Content-Type: application/json
 
 {
   "title": "Dev Env Test Event",
-  "description": "EventHub Dev Session",
+  "description": "EventHub Dev Session 2",
   "dateTime": "2026-04-01T10:00:00+00:00",
-  "location": "Room Dev-1",
+  "location": "Room Dev-2",
   "capacity": 20
 }
-
-> {% client.global.set("eventId", response.body.id); %}
+# After running: copy the returned "id" value into @eventId above
 
 ###
 # Get event by id
@@ -89,8 +88,7 @@ Content-Type: application/json
 {
   "participantEmail": "eh-organizer-dev@globaltradedemo.onmicrosoft.com"
 }
-
-> {% client.global.set("invitationId", response.body.id); %}
+# After running: copy the returned "id" value into @invitationId above
 
 ###
 # Reissue invitation token
