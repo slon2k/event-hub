@@ -1,7 +1,6 @@
 using Azure.Communication.Email;
 using EventHub.Infrastructure.Persistence;
 using EventHub.Notifications.Services;
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
