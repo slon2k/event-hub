@@ -5,7 +5,6 @@ param environment = 'prod'
 param skuName = 'B1'
 param sqlServerName = 'eventhub-prod-sql'
 param sqlDatabaseName = 'eventhub-prod-db'
-param serviceBusNamespaceName = 'eventhub-prod-sb'
 param sqlDatabaseSku = { name: 'S0', tier: 'Standard' }
 param enablePurgeProtection = true
 param skuCapacity = 1

@@ -56,7 +56,7 @@ param freeLimitExhaustionBehavior string = 'AutoPause'
 param enablePurgeProtection bool = false
 
 @description('Name of the Azure Service Bus namespace.')
-param serviceBusNamespaceName string
+param serviceBusNamespaceName string = toLower('${take(baseName, 8)}-${environment}-sb-${take(uniqueString(resourceGroup().id), 6)}')
 
 @description('Name of the Key Vault.')
 // Simpler, unique, and more readable Key Vault name: baseName-env-kv-xxxxxx
