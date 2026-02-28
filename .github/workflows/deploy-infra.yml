@@ -140,6 +140,26 @@ jobs:
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters infra/bicep/environments/dev/main.bicepparam
 
+      - name: Grant Key Vault access to managed identities
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            KV_ID=$(az keyvault list --resource-group eventhub-dev-rg --query "[0].id" -o tsv)
+            ROLE="Key Vault Secrets User"
+
+            API_PRINCIPAL=$(az webapp identity show --resource-group eventhub-dev-rg --name eventhub-dev-api --query principalId -o tsv)
+            az role assignment create \
+              --assignee-object-id "$API_PRINCIPAL" \
+              --assignee-principal-type ServicePrincipal \
+              --role "$ROLE" --scope "$KV_ID" 2>/dev/null || echo "API role assignment already exists"
+
+            FUNC_PRINCIPAL=$(az functionapp identity show --resource-group eventhub-dev-rg --name eventhub-dev-func --query principalId -o tsv)
+            az role assignment create \
+              --assignee-object-id "$FUNC_PRINCIPAL" \
+              --assignee-principal-type ServicePrincipal \
+              --role "$ROLE" --scope "$KV_ID" 2>/dev/null || echo "Function App role assignment already exists"
+
   # ── Deploy to test on push to master ────────────────────────────────────
   deploy-test:
     name: Deploy – test
@@ -174,6 +194,26 @@ jobs:
               --resource-group eventhub-test-rg \
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters infra/bicep/environments/test/main.bicepparam
+
+      - name: Grant Key Vault access to managed identities
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            KV_ID=$(az keyvault list --resource-group eventhub-test-rg --query "[0].id" -o tsv)
+            ROLE="Key Vault Secrets User"
+
+            API_PRINCIPAL=$(az webapp identity show --resource-group eventhub-test-rg --name eventhub-test-api --query principalId -o tsv)
+            az role assignment create \
+              --assignee-object-id "$API_PRINCIPAL" \
+              --assignee-principal-type ServicePrincipal \
+              --role "$ROLE" --scope "$KV_ID" 2>/dev/null || echo "API role assignment already exists"
+
+            FUNC_PRINCIPAL=$(az functionapp identity show --resource-group eventhub-test-rg --name eventhub-test-func --query principalId -o tsv)
+            az role assignment create \
+              --assignee-object-id "$FUNC_PRINCIPAL" \
+              --assignee-principal-type ServicePrincipal \
+              --role "$ROLE" --scope "$KV_ID" 2>/dev/null || echo "Function App role assignment already exists"
 
   # ── Deploy to prod on manual trigger only ────────────────────────────────
   deploy-prod:
@@ -215,3 +255,23 @@ jobs:
               --resource-group eventhub-prod-rg \
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters infra/bicep/environments/prod/main.bicepparam
+
+      - name: Grant Key Vault access to managed identities
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            KV_ID=$(az keyvault list --resource-group eventhub-prod-rg --query "[0].id" -o tsv)
+            ROLE="Key Vault Secrets User"
+
+            API_PRINCIPAL=$(az webapp identity show --resource-group eventhub-prod-rg --name eventhub-prod-api --query principalId -o tsv)
+            az role assignment create \
+              --assignee-object-id "$API_PRINCIPAL" \
+              --assignee-principal-type ServicePrincipal \
+              --role "$ROLE" --scope "$KV_ID" 2>/dev/null || echo "API role assignment already exists"
+
+            FUNC_PRINCIPAL=$(az functionapp identity show --resource-group eventhub-prod-rg --name eventhub-prod-func --query principalId -o tsv)
+            az role assignment create \
+              --assignee-object-id "$FUNC_PRINCIPAL" \
+              --assignee-principal-type ServicePrincipal \
+              --role "$ROLE" --scope "$KV_ID" 2>/dev/null || echo "Function App role assignment already exists"
