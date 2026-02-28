@@ -34,3 +34,19 @@ param appSettings = [
     value: 'api://09af58ae-9706-469f-8dfe-c913428505fd'
   }
 ]
+
+// Function app settings — ACS stub active; emails are logged to console, not sent.
+param functionAppSettings = [
+  {
+    name: 'AcsEmail__UseStub'
+    value: 'true'
+  }
+  {
+    name: 'AcsEmail__SenderAddress'
+    value: 'noreply@eventhub.example.com'
+  }
+  {
+    name: 'App__BaseUrl'
+    value: 'https://eventhub-dev.azurewebsites.net'
+  }
+]

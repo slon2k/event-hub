@@ -52,6 +52,9 @@ param useFreeLimit bool = false
 @allowed(['AutoPause', 'BillOverUsage'])
 param freeLimitExhaustionBehavior string = 'AutoPause'
 
+@description('Additional app settings for the Azure Functions app as an array of {name, value} objects.')
+param functionAppSettings array = []
+
 @description('Enable Key Vault purge protection. Irreversible once set. Set true for prod to prevent permanent secret loss.')
 param enablePurgeProtection bool = false
 
@@ -68,6 +71,15 @@ param keyVaultName string = toLower('${take(baseName, 8)}-${environment}-kv-${ta
 // This avoids a circular dependency between the api and keyVault modules.
 // Note: az.environment().suffixes.keyvaultDns already includes a leading dot (e.g. ".vault.azure.net").
 var kvBaseUri = 'https://${keyVaultName}${az.environment().suffixes.keyvaultDns}/'
+
+// Pre-computed versionless Key Vault secret URIs (trailing / = always-current version).
+// Used by both the API and the Functions app so neither depends on keyVault module outputs.
+var sqlConnectionStringSecretUri      = '${kvBaseUri}secrets/sql-connection-string/'
+var serviceBusConnectionStringSecretUri = '${kvBaseUri}secrets/servicebus-connection-string/'
+var storageConnectionStringSecretUri  = '${kvBaseUri}secrets/storage-connection-string/'
+
+// Storage account name: <=24 chars, lowercase alphanumeric only.
+var storageAccountName = toLower('${take(replace(baseName, '-', ''), 8)}${environment}${take(uniqueString(resourceGroup().id), 8)}')
 
 module plan 'modules/appServicePlan.bicep' = {
   name: 'appServicePlan'
@@ -134,16 +146,41 @@ module serviceBus 'modules/serviceBus.bicep' = {
   }
 }
 
+module storage 'modules/storageAccount.bicep' = {
+  name: 'storageAccount'
+  params: {
+    storageAccountName: storageAccountName
+    location: location
+    extraTags: extraTags
+  }
+}
+
+module functionApp 'modules/functionApp.bicep' = {
+  name: 'functionApp'
+  params: {
+    baseName: baseName
+    environment: environment
+    location: location
+    keyVaultUri: kvBaseUri
+    serviceBusConnectionStringSecretUri: serviceBusConnectionStringSecretUri
+    sqlConnectionStringSecretUri: sqlConnectionStringSecretUri
+    storageConnectionStringSecretUri: storageConnectionStringSecretUri
+    appSettings: functionAppSettings
+    extraTags: extraTags
+  }
+}
+
 module keyVault 'modules/keyVault.bicep' = {
   name: 'keyVault'
   params: {
     keyVaultName: keyVaultName
     location: location
     enablePurgeProtection: enablePurgeProtection
-    secretsUserPrincipalIds: [api.outputs.webAppPrincipalId]
+    secretsUserPrincipalIds: [api.outputs.webAppPrincipalId, functionApp.outputs.functionAppPrincipalId]
     secrets: {
       'sql-connection-string': sqlConnectionString
       'servicebus-connection-string': serviceBus.outputs.primaryConnectionString
+      'storage-connection-string': storage.outputs.primaryConnectionString
     }
   }
 }
@@ -168,3 +205,6 @@ output keyVaultUri string = keyVault.outputs.keyVaultUri
 output sqlConnectionStringSecretUri string = length(sqlConnectionStringSecretObj) > 0 ? sqlConnectionStringSecretObj[0].uri : ''
 output serviceBusNamespaceName string = serviceBus.outputs.namespaceName
 output serviceBusTopicName string = serviceBus.outputs.topicName
+output storageAccountName string = storage.outputs.storageAccountName
+output functionAppName string = functionApp.outputs.functionAppName
+output functionAppDefaultHostName string = functionApp.outputs.functionAppDefaultHostName

@@ -32,3 +32,25 @@ param appSettings = [
     value: 'api://<DEV_CLIENT_ID>'
   }
 ]
+
+// Function app settings — set UseStub=false and provide real ACS config for prod.
+// AcsEmail__ConnectionString should be stored in Key Vault; add it as a secret and
+// replace the value below with a @Microsoft.KeyVault(...) reference.
+param functionAppSettings = [
+  {
+    name: 'AcsEmail__UseStub'
+    value: 'false'
+  }
+  {
+    name: 'AcsEmail__ConnectionString'
+    value: '<YOUR_ACS_CONNECTION_STRING>'
+  }
+  {
+    name: 'AcsEmail__SenderAddress'
+    value: 'noreply@<YOUR_ACS_VERIFIED_DOMAIN>'
+  }
+  {
+    name: 'App__BaseUrl'
+    value: 'https://<YOUR_PROD_URL>'
+  }
+]
