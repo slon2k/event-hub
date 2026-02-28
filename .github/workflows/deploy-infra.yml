@@ -160,6 +160,24 @@ jobs:
               --assignee-principal-type ServicePrincipal \
               --role "$ROLE" --scope "$KV_ID" 2>/dev/null || echo "Function App role assignment already exists"
 
+      - name: Grant storage access to function app identity
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            STORAGE_ID=$(az storage account list --resource-group eventhub-dev-rg --query "[0].id" -o tsv)
+            FUNC_PRINCIPAL=$(az functionapp identity show --resource-group eventhub-dev-rg --name eventhub-dev-func --query principalId -o tsv)
+
+            az role assignment create \
+              --assignee-object-id "$FUNC_PRINCIPAL" --assignee-principal-type ServicePrincipal \
+              --role "Storage Blob Data Owner" --scope "$STORAGE_ID" 2>/dev/null || echo "Blob role already exists"
+            az role assignment create \
+              --assignee-object-id "$FUNC_PRINCIPAL" --assignee-principal-type ServicePrincipal \
+              --role "Storage Queue Data Contributor" --scope "$STORAGE_ID" 2>/dev/null || echo "Queue role already exists"
+            az role assignment create \
+              --assignee-object-id "$FUNC_PRINCIPAL" --assignee-principal-type ServicePrincipal \
+              --role "Storage Table Data Contributor" --scope "$STORAGE_ID" 2>/dev/null || echo "Table role already exists"
+
   # ── Deploy to test on push to master ────────────────────────────────────
   deploy-test:
     name: Deploy – test
@@ -214,6 +232,24 @@ jobs:
               --assignee-object-id "$FUNC_PRINCIPAL" \
               --assignee-principal-type ServicePrincipal \
               --role "$ROLE" --scope "$KV_ID" 2>/dev/null || echo "Function App role assignment already exists"
+
+      - name: Grant storage access to function app identity
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            STORAGE_ID=$(az storage account list --resource-group eventhub-test-rg --query "[0].id" -o tsv)
+            FUNC_PRINCIPAL=$(az functionapp identity show --resource-group eventhub-test-rg --name eventhub-test-func --query principalId -o tsv)
+
+            az role assignment create \
+              --assignee-object-id "$FUNC_PRINCIPAL" --assignee-principal-type ServicePrincipal \
+              --role "Storage Blob Data Owner" --scope "$STORAGE_ID" 2>/dev/null || echo "Blob role already exists"
+            az role assignment create \
+              --assignee-object-id "$FUNC_PRINCIPAL" --assignee-principal-type ServicePrincipal \
+              --role "Storage Queue Data Contributor" --scope "$STORAGE_ID" 2>/dev/null || echo "Queue role already exists"
+            az role assignment create \
+              --assignee-object-id "$FUNC_PRINCIPAL" --assignee-principal-type ServicePrincipal \
+              --role "Storage Table Data Contributor" --scope "$STORAGE_ID" 2>/dev/null || echo "Table role already exists"
 
   # ── Deploy to prod on manual trigger only ────────────────────────────────
   deploy-prod:
@@ -275,3 +311,21 @@ jobs:
               --assignee-object-id "$FUNC_PRINCIPAL" \
               --assignee-principal-type ServicePrincipal \
               --role "$ROLE" --scope "$KV_ID" 2>/dev/null || echo "Function App role assignment already exists"
+
+      - name: Grant storage access to function app identity
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            STORAGE_ID=$(az storage account list --resource-group eventhub-prod-rg --query "[0].id" -o tsv)
+            FUNC_PRINCIPAL=$(az functionapp identity show --resource-group eventhub-prod-rg --name eventhub-prod-func --query principalId -o tsv)
+
+            az role assignment create \
+              --assignee-object-id "$FUNC_PRINCIPAL" --assignee-principal-type ServicePrincipal \
+              --role "Storage Blob Data Owner" --scope "$STORAGE_ID" 2>/dev/null || echo "Blob role already exists"
+            az role assignment create \
+              --assignee-object-id "$FUNC_PRINCIPAL" --assignee-principal-type ServicePrincipal \
+              --role "Storage Queue Data Contributor" --scope "$STORAGE_ID" 2>/dev/null || echo "Queue role already exists"
+            az role assignment create \
+              --assignee-object-id "$FUNC_PRINCIPAL" --assignee-principal-type ServicePrincipal \
+              --role "Storage Table Data Contributor" --scope "$STORAGE_ID" 2>/dev/null || echo "Table role already exists"
