@@ -23,7 +23,7 @@ public sealed class ProcessOutboxFunction(
 
     [Function("ProcessOutboxFunction")]
     public async Task Run(
-        [TimerTrigger("%Outbox__TimerCronExpression%")] TimerInfo timerInfo,
+        [TimerTrigger("%OutboxTimerCronExpression%")] TimerInfo timerInfo,
         CancellationToken cancellationToken)
     {
         var topicName = configuration["ServiceBus__TopicName"] ?? "notifications";

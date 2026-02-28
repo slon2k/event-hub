@@ -87,7 +87,7 @@ var defaultAppSettings = [
   }
   // Outbox polling interval (every 10 seconds)
   {
-    name: 'Outbox__TimerCronExpression'
+    name: 'OutboxTimerCronExpression'
     value: '*/10 * * * * *'
   }
   // Key Vault URI (informational — used by any code that constructs KV references at runtime)

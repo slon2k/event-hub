@@ -14,7 +14,7 @@
 
     // --- Outbox polling ---
     // Every 10 seconds. Format: {second} {minute} {hour} {day} {month} {day-of-week}
-    "Outbox__TimerCronExpression": "*/10 * * * * *",
+    "OutboxTimerCronExpression": "*/10 * * * * *",
 
     // --- ACS Email ---
     // Set UseStub=true to print emails to the console instead of sending via ACS (safe for local dev).
