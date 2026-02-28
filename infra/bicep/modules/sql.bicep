@@ -24,6 +24,9 @@ param useFreeLimit bool = false
 @allowed(['AutoPause', 'BillOverUsage'])
 param freeLimitExhaustionBehavior string = 'AutoPause'
 
+@description('Allow Azure services and resources to access this server (the 0.0.0.0–0.0.0.0 special rule). Enable for App Service. Disable when using VNet integration.')
+param allowAzureServicesAccess bool = true
+
 @description('Extra tags merged into the defaults.')
 param extraTags object = {}
 
@@ -59,6 +62,18 @@ resource sqlDb 'Microsoft.Sql/servers/databases@2023-05-01-preview' = {
   properties: {
     useFreeLimit: useFreeLimit
     freeLimitExhaustionBehavior: useFreeLimit ? freeLimitExhaustionBehavior : null
+  }
+}
+
+// The 0.0.0.0–0.0.0.0 range is the Azure-reserved special value that maps to
+// "Allow Azure services and resources to access this server" in the portal.
+// It does NOT open access to the public internet.
+resource allowAzureServices 'Microsoft.Sql/servers/firewallRules@2023-05-01-preview' = if (allowAzureServicesAccess) {
+  parent: sqlServer
+  name: 'AllowAzureServices'
+  properties: {
+    startIpAddress: '0.0.0.0'
+    endIpAddress: '0.0.0.0'
   }
 }
 
