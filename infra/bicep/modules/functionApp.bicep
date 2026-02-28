@@ -8,9 +8,6 @@ param environment string
 @description('Azure region.')
 param location string = resourceGroup().location
 
-@description('.NET isolated worker runtime version, e.g. "DOTNET-ISOLATED|10.0".')
-param linuxFxVersion string = 'DOTNET-ISOLATED|10.0'
-
 @description('Additional app settings as an array of {name, value} objects.')
 param appSettings array = []
 
@@ -40,7 +37,10 @@ var baseTags = {
 }
 var finalTags = union(baseTags, extraTags)
 
-// ── Consumption plan (Y1/Dynamic, Linux) ─────────────────────────────────────
+// ── Consumption plan (Y1/Dynamic, Windows) ───────────────────────────────────
+// Linux Consumption plans cannot be deployed to resource groups that already
+// contain Windows-based App Service resources. Windows Consumption supports
+// the .NET isolated worker runtime identically.
 
 resource consumptionPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: consumptionPlanName
@@ -51,9 +51,7 @@ resource consumptionPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
     name: 'Y1'
     tier: 'Dynamic'
   }
-  properties: {
-    reserved: true // Linux
-  }
+  properties: {}
 }
 
 // ── Function App ──────────────────────────────────────────────────────────────
@@ -104,7 +102,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   name: functionAppName
   location: location
   tags: finalTags
-  kind: 'functionapp,linux'
+  kind: 'functionapp'
   identity: {
     type: 'SystemAssigned'
   }
@@ -112,7 +110,6 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     serverFarmId: consumptionPlan.id
     httpsOnly: true
     siteConfig: {
-      linuxFxVersion: linuxFxVersion
       ftpsState: 'Disabled'
       minTlsVersion: '1.3'
       appSettings: effectiveAppSettings
