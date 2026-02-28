@@ -23,6 +23,9 @@ param sqlConnectionStringSecretUri string
 @description('Key Vault secret URI for the Azure Functions storage account connection string.')
 param storageConnectionStringSecretUri string
 
+@description('Application Insights connection string for telemetry. Leave empty to disable.')
+param applicationInsightsConnectionString string = ''
+
 @description('Extra tags merged into the defaults.')
 param extraTags object = {}
 
@@ -96,7 +99,16 @@ var defaultAppSettings = [
   }
 ]
 
-var effectiveAppSettings = concat(defaultAppSettings, appSettings)
+var aiSettings = !empty(applicationInsightsConnectionString)
+  ? [
+      {
+        name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+        value: applicationInsightsConnectionString
+      }
+    ]
+  : []
+
+var effectiveAppSettings = concat(defaultAppSettings, aiSettings, appSettings)
 
 resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   name: functionAppName

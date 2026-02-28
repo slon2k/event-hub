@@ -126,6 +126,7 @@ module api 'modules/appService.bicep' = {
         value: kvBaseUri
       }
     ])
+    applicationInsightsConnectionString: appInsights.outputs.connectionString
     connectionStrings: concat(connectionStrings, [
       {
         name: 'DefaultConnection'
@@ -155,6 +156,16 @@ module storage 'modules/storageAccount.bicep' = {
   }
 }
 
+module appInsights 'modules/applicationInsights.bicep' = {
+  name: 'applicationInsights'
+  params: {
+    baseName: baseName
+    environment: environment
+    location: location
+    extraTags: extraTags
+  }
+}
+
 module functionApp 'modules/functionApp.bicep' = {
   name: 'functionApp'
   params: {
@@ -166,6 +177,7 @@ module functionApp 'modules/functionApp.bicep' = {
     sqlConnectionStringSecretUri: sqlConnectionStringSecretUri
     storageConnectionStringSecretUri: storageConnectionStringSecretUri
     appSettings: functionAppSettings
+    applicationInsightsConnectionString: appInsights.outputs.connectionString
     extraTags: extraTags
   }
 }
@@ -208,3 +220,4 @@ output serviceBusTopicName string = serviceBus.outputs.topicName
 output storageAccountName string = storage.outputs.storageAccountName
 output functionAppName string = functionApp.outputs.functionAppName
 output functionAppDefaultHostName string = functionApp.outputs.functionAppDefaultHostName
+output appInsightsName string = appInsights.outputs.appInsightsName
