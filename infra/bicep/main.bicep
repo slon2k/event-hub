@@ -55,6 +55,9 @@ param freeLimitExhaustionBehavior string = 'AutoPause'
 @description('Enable Key Vault purge protection. Irreversible once set. Set true for prod to prevent permanent secret loss.')
 param enablePurgeProtection bool = false
 
+@description('Name of the Azure Service Bus namespace.')
+param serviceBusNamespaceName string
+
 @description('Name of the Key Vault.')
 // Simpler, unique, and more readable Key Vault name: baseName-env-kv-xxxxxx
 param keyVaultName string = toLower('${take(baseName, 8)}-${environment}-kv-${take(uniqueString(resourceGroup().id), 6)}')
@@ -122,6 +125,15 @@ module api 'modules/appService.bicep' = {
   }
 }
 
+module serviceBus 'modules/serviceBus.bicep' = {
+  name: 'serviceBus'
+  params: {
+    namespaceName: serviceBusNamespaceName
+    location: location
+    extraTags: extraTags
+  }
+}
+
 module keyVault 'modules/keyVault.bicep' = {
   name: 'keyVault'
   params: {
@@ -131,6 +143,7 @@ module keyVault 'modules/keyVault.bicep' = {
     secretsUserPrincipalIds: [api.outputs.webAppPrincipalId]
     secrets: {
       'sql-connection-string': sqlConnectionString
+      'servicebus-connection-string': serviceBus.outputs.primaryConnectionString
     }
   }
 }
@@ -153,3 +166,5 @@ output keyVaultName string = keyVault.outputs.keyVaultName
 output keyVaultUri string = keyVault.outputs.keyVaultUri
 #disable-next-line outputs-should-not-contain-secrets
 output sqlConnectionStringSecretUri string = length(sqlConnectionStringSecretObj) > 0 ? sqlConnectionStringSecretObj[0].uri : ''
+output serviceBusNamespaceName string = serviceBus.outputs.namespaceName
+output serviceBusTopicName string = serviceBus.outputs.topicName

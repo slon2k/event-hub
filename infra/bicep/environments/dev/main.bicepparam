@@ -6,6 +6,7 @@ param environment = 'dev'
 param skuName = 'F1'
 param sqlServerName = 'eventhub-dev-sql'
 param sqlDatabaseName = 'eventhub-dev-db'
+param serviceBusNamespaceName = 'eventhub-dev-sb'
 param sqlDatabaseSku = { name: 'Basic', tier: 'Basic' } // ignored when useFreeLimit is true
 param useFreeLimit = true
 param skuCapacity = 1
