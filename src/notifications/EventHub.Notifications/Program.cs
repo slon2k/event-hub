@@ -17,18 +17,14 @@ var host = new HostBuilder()
         // reads OutboxMessages written by the API in the same transaction.
         services.AddDbContext<EventHubDbContext>(options =>
             options.UseSqlServer(
-                config["ConnectionStrings:DefaultConnection"]
-                    ?? throw new InvalidOperationException(
-                        "Connection string 'DefaultConnection' is not configured."),
+                config["ConnectionStrings:DefaultConnection"] ?? string.Empty,
                 sql => sql.EnableRetryOnFailure(maxRetryCount: 5)));
 
         // ── Service Bus ───────────────────────────────────────────────────────────
         services.AddAzureClients(builder =>
         {
             builder.AddServiceBusClient(
-                config["ServiceBusConnectionString"]
-                    ?? throw new InvalidOperationException(
-                        "'ServiceBusConnectionString' is not configured."));
+                config["ServiceBusConnectionString"] ?? string.Empty);
         });
 
         // ── Email sender ──────────────────────────────────────────────────────────
