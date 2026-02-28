@@ -1,0 +1,147 @@
+name: Deploy – Notifications Function App
+
+on:
+  push:
+    branches:
+      - development
+      - master
+    paths:
+      - 'src/notifications/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - test
+          - prod
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  DOTNET_VERSION: '10.x'
+  NOTIFICATIONS_PROJECT: src/notifications/EventHub.Notifications/EventHub.Notifications.csproj
+
+jobs:
+  # ── Build & publish ───────────────────────────────────────────────────────
+  build:
+    name: Build & Publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release
+
+      - name: Publish
+        run: dotnet publish ${{ env.NOTIFICATIONS_PROJECT }} --no-build --configuration Release --output publish/notifications
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: notifications
+          path: publish/notifications
+          retention-days: 1
+
+  # ── Deploy to dev on push to development ─────────────────────────────────
+  deploy-dev:
+    name: Deploy – dev
+    needs: build
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/development') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: notifications
+          path: publish/notifications
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy – dev
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: eventhub-dev-func
+          package: publish/notifications
+
+  # ── Deploy to test on push to master ─────────────────────────────────────
+  deploy-test:
+    name: Deploy – test
+    needs: build
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/master') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'test')
+    runs-on: ubuntu-latest
+    environment: test
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: notifications
+          path: publish/notifications
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy – test
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: eventhub-test-func
+          package: publish/notifications
+
+  # ── Deploy to prod on manual trigger only ────────────────────────────────
+  deploy-prod:
+    name: Deploy – prod
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: notifications
+          path: publish/notifications
+
+      - name: Verify branch is master
+        if: github.ref != 'refs/heads/master'
+        run: |
+          echo "Prod deployments must be triggered from master, not ${{ github.ref }}"
+          exit 1
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy – prod
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: eventhub-prod-func
+          package: publish/notifications
