@@ -35,7 +35,8 @@ param appSettings = [
   }
 ]
 
-// Function app settings — ACS stub active; emails are logged to console, not sent.
+// Function app settings — ACS stub active; emails are written to the EmailOutbox table in Azure
+// Table Storage instead of being sent via ACS. Inspect rows in Storage Explorer or the Portal.
 param functionAppSettings = [
   {
     name: 'AcsEmail__UseStub'
@@ -48,5 +49,9 @@ param functionAppSettings = [
   {
     name: 'App__BaseUrl'
     value: 'https://eventhub-dev-api.azurewebsites.net'
+  }
+  {
+    name: 'EmailOutboxTableName'
+    value: 'EmailOutbox'
   }
 ]
