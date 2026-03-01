@@ -92,6 +92,39 @@ az webapp deploy \
 
 ---
 
+## Functions Deployment
+
+### Automatic deployment (recommended)
+
+Functions deploy automatically via [deploy-notifications.yml](../../.github/workflows/deploy-notifications.yml):
+
+- Push to `development` → deploys to **dev**
+- Push to `master` → deploys to **test**
+- Manual trigger (GitHub Actions UI, `master` branch only) → deploys to **prod**
+
+### Manual Functions deployment
+
+```powershell
+# Build and publish
+dotnet publish src/notifications/EventHub.Notifications/EventHub.Notifications.csproj `
+  --configuration Release `
+  --output publish/notifications
+
+# Package (must include hidden .azurefunctions/ directory)
+Compress-Archive -Path publish\notifications\* -DestinationPath publish\notifications.zip -Force
+
+# Deploy (replace <env> with dev | test | prod)
+az functionapp deployment source config-zip `
+  --resource-group eventhub-<env>-rg `
+  --name eventhub-<env>-func `
+  --src publish\notifications.zip `
+  --build-remote false
+```
+
+> **Important:** Use `Compress-Archive` (or `zip -r`) — not `az webapp deploy`. The `az webapp deploy` action strips hidden directories including `.azurefunctions/`, which prevents function registration.
+
+---
+
 ## First-Time Setup
 
 If deploying to a brand-new subscription or resource group:
@@ -219,3 +252,5 @@ Swap back to a previous deployment slot or redeploy a previous build artifact fr
 | `Authorization failed for roleAssignments/write` | Service principal missing User Access Administrator | Assign User Access Administrator on each resource group (see OIDC setup step 5) |
 | `RoleDefinitionDoesNotExist` | Wrong built-in role GUID | Run `az role definition list --name "Key Vault Secrets User" --query "[0].name" -o tsv` to get the correct GUID for your tenant |
 | App Service connection string unresolved | KV reference not working | Check App Service identity is enabled, Key Vault RBAC role assignment exists, and secret name matches `sql-connection-string` |
+| Function timer never fires, zero invocations | Storage RBAC not applied to managed identity | Verify the function app identity has `Storage Blob Data Owner`, `Storage Queue Data Contributor`, and `Storage Table Data Contributor` on the storage account. Bicep assigns these automatically — if applying to a pre-existing function app, redeploy infra or grant manually. |
+| `'%OutboxTimerCronExpression%' does not resolve to a value` | App setting missing or misspelled | Ensure `OutboxTimerCronExpression` (no double underscore) exists in the function app configuration. Double-underscore names are treated as config section separators by the .NET host and will not resolve in timer trigger bindings. |

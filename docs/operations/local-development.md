@@ -142,7 +142,13 @@ Set via user secrets (API):
 dotnet user-secrets set "ServiceBus:ConnectionString" "<connection-string>"
 ```
 
-Set in `src/notifications/EventHub.Notifications/local.settings.json` (not committed):
+Set in `src/notifications/EventHub.Notifications/local.settings.json` (not committed).
+Copy the example file and fill in your values:
+
+```bash
+cp src/notifications/EventHub.Notifications/local.settings.json.example \
+   src/notifications/EventHub.Notifications/local.settings.json
+```
 
 ```json
 {
@@ -150,12 +156,22 @@ Set in `src/notifications/EventHub.Notifications/local.settings.json` (not commi
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "ServiceBusConnectionString": "<connection-string>",
+    "ServiceBusConnectionString": "<your-sb-connection-string>",
     "ServiceBus__TopicName": "notifications",
-    "ServiceBus__SubscriptionName": "email"
+    "ServiceBus__SubscriptionName": "email",
+    "OutboxTimerCronExpression": "*/10 * * * * *",
+    "AcsEmail__UseStub": "true",
+    "AcsEmail__ConnectionString": "<your-acs-connection-string>",
+    "AcsEmail__SenderAddress": "noreply@eventhub.example.com",
+    "App__BaseUrl": "http://localhost:5165"
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost,1433;Database=EventHub;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True"
   }
 }
 ```
+
+> `AcsEmail__UseStub=true` logs email content to the console — no real ACS resource needed locally.
 
 ### Option B: Skip Service Bus locally
 
@@ -317,6 +333,7 @@ dotnet run --project src/backend/EventHub.Api -- --seed
 | `401` against dev Azure environment | Token expired — get a fresh token via Postman OAuth2 flow |
 | `403 Forbidden` against dev Azure environment | User does not have an app role assigned — add via Entra ID → Enterprise applications → EventHub API → Users and groups |
 | `Health check sql Unhealthy` | SQL Server container is not running locally, or (Azure) the Key Vault reference for `DefaultConnection` failed to resolve — check App Service Configuration |
-| `OutboxMessages` not being published | Ensure `ProcessOutboxFunction` is running (`func start` in notifications project) |
+| `OutboxMessages` not being published | Ensure `ProcessOutboxFunction` is running (`func start` in notifications project). Also verify `OutboxTimerCronExpression` is present in `local.settings.json` — note: **single word, no double underscore**. |
+| Timer trigger error: `does not resolve to a value` | `OutboxTimerCronExpression` is missing from `local.settings.json` or was misspelled with `__` separators |
 | `Failed to connect to Service Bus` | Check `ServiceBusConnectionString` in `local.settings.json` or user secrets |
 | EF migrations out of date | Run `dotnet ef database update` after pulling changes that include new migrations |
