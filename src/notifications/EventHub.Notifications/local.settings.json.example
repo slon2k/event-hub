@@ -17,10 +17,13 @@
     "OutboxTimerCronExpression": "*/10 * * * * *",
 
     // --- ACS Email ---
-    // Set UseStub=true to print emails to the console instead of sending via ACS (safe for local dev).
+    // UseStub=true writes emails to Azure Table Storage (Azurite locally) instead of sending via ACS.
+    // Open the 'EmailOutbox' table in Azure Storage Explorer or the VS Code Azure extension to inspect
+    // sent messages. The RsvpToken column contains the raw token needed for the happy-path .http file.
     "AcsEmail__UseStub": "true",
     "AcsEmail__ConnectionString": "<your-acs-connection-string>",
     "AcsEmail__SenderAddress": "noreply@eventhub.example.com",
+    "EmailOutboxTableName": "EmailOutbox",
 
     // --- App ---
     // Base URL of the frontend; embedded in invitation email RSVP links.

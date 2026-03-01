@@ -1,4 +1,6 @@
 using Azure.Communication.Email;
+using Azure.Data.Tables;
+using Azure.Identity;
 using EventHub.Infrastructure.Persistence;
 using EventHub.Notifications.Services;
 using Microsoft.EntityFrameworkCore;
@@ -28,12 +30,24 @@ var host = new HostBuilder()
         });
 
         // ── Email sender ──────────────────────────────────────────────────────────
-        // Set AcsEmail:UseStub=true in local.settings.json to log emails to the
-        // console instead of sending via ACS — safe for local development.
+        // Set AcsEmail:UseStub=true to write emails to Azure Table Storage instead
+        // of sending via ACS. Safe for local development (Azurite) and the dev
+        // environment in Azure. Rows are queryable in Storage Explorer / Portal.
         var useStub = string.Equals(config["AcsEmail:UseStub"], "true", StringComparison.OrdinalIgnoreCase);
         if (useStub)
         {
-            services.AddSingleton<IEmailSender, ConsoleEmailSender>();
+            // Re-use the AzureWebJobsStorage account: managed identity in Azure,
+            // Azurite connection string locally (UseDevelopmentStorage=true).
+            var storageAccountName = config["AzureWebJobsStorage__accountName"];
+            var tableClient = !string.IsNullOrEmpty(storageAccountName)
+                ? new TableServiceClient(
+                    new Uri($"https://{storageAccountName}.table.core.windows.net"),
+                    new ManagedIdentityCredential())
+                : new TableServiceClient(
+                    config["AzureWebJobsStorage"] ?? "UseDevelopmentStorage=true");
+
+            services.AddSingleton(tableClient);
+            services.AddSingleton<IEmailSender, TableStorageEmailSender>();
         }
         else
         {

@@ -4,7 +4,9 @@
 # Fill these after step 1/2 responses
 @eventId = 00000000-0000-0000-0000-000000000000
 @invitationId = 00000000-0000-0000-0000-000000000000
-@rawToken = <PASTE_RAW_TOKEN_FROM_INVITATION_SEND_RESPONSE_OR_LOG>
+# Find rawToken in the EmailOutbox table (Storage Explorer → Azurite / Azure Storage account → Tables → EmailOutbox
+# Filter by PartitionKey = @eventId. Copy the RsvpToken column value for the matching InvitationId row.
+@rawToken = <PASTE_RSVP_TOKEN_FROM_EMAILOUTBOX_TABLE>
 
 ###
 # 0) Health check: authenticated organizer can read own events
