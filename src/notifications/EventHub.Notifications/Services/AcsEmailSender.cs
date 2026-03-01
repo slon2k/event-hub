@@ -17,10 +17,10 @@ public sealed class AcsEmailSender(
     ILogger<AcsEmailSender> logger) : IEmailSender
 {
     private string SenderAddress =>
-        configuration["AcsEmail__SenderAddress"] ?? "noreply@eventhub.example.com";
+        configuration["AcsEmail:SenderAddress"] ?? "noreply@eventhub.example.com";
 
     private string AppBaseUrl =>
-        configuration["App__BaseUrl"] ?? "https://eventhub.example.com";
+        configuration["App:BaseUrl"] ?? "https://eventhub.example.com";
 
     public async Task SendInvitationAsync(InvitationSent evt, CancellationToken cancellationToken = default)
     {

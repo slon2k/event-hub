@@ -35,7 +35,7 @@ public sealed class TableStorageEmailSender(
         configuration["EmailOutboxTableName"] ?? "EmailOutbox";
 
     private readonly string _appBaseUrl =
-        configuration["App__BaseUrl"] ?? "https://eventhub.example.com";
+        configuration["App:BaseUrl"] ?? "https://eventhub.example.com";
 
     // Lazily initialised on first use; safe because the sender is registered as a singleton.
     private TableClient? _tableClient;

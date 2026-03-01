@@ -38,7 +38,9 @@ var host = new HostBuilder()
         {
             // Re-use the AzureWebJobsStorage account: managed identity in Azure,
             // Azurite connection string locally (UseDevelopmentStorage=true).
-            var storageAccountName = config["AzureWebJobsStorage__accountName"];
+            // IConfiguration converts __ → : for env vars, so the app setting
+            // AzureWebJobsStorage__accountName must be read with a colon here.
+            var storageAccountName = config["AzureWebJobsStorage:accountName"];
             var tableClient = !string.IsNullOrEmpty(storageAccountName)
                 ? new TableServiceClient(
                     new Uri($"https://{storageAccountName}.table.core.windows.net"),
