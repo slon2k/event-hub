@@ -26,7 +26,7 @@ public sealed class ProcessOutboxFunction(
         [TimerTrigger("%OutboxTimerCronExpression%")] TimerInfo timerInfo,
         CancellationToken cancellationToken)
     {
-        var topicName = configuration["ServiceBus__TopicName"] ?? "notifications";
+        var topicName = configuration["ServiceBusTopicName"] ?? "notifications";
 
         var messages = await dbContext.OutboxMessages
             .Where(m => m.PublishedAt == null)

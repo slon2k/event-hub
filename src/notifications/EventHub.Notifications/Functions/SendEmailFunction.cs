@@ -22,8 +22,8 @@ public sealed class SendEmailFunction(
     [Function("SendEmailFunction")]
     public async Task Run(
         [ServiceBusTrigger(
-            "%ServiceBus__TopicName%",
-            "%ServiceBus__SubscriptionName%",
+            "%ServiceBusTopicName%",
+            "%ServiceBusSubscriptionName%",
             Connection = "ServiceBusConnectionString")]
         ServiceBusReceivedMessage message,
         CancellationToken cancellationToken)

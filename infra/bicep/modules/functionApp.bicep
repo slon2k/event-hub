@@ -75,11 +75,11 @@ var defaultAppSettings = [
     value: '@Microsoft.KeyVault(SecretUri=${serviceBusConnectionStringSecretUri})'
   }
   {
-    name: 'ServiceBus__TopicName'
+    name: 'ServiceBusTopicName'
     value: 'notifications'
   }
   {
-    name: 'ServiceBus__SubscriptionName'
+    name: 'ServiceBusSubscriptionName'
     value: 'email'
   }
   // Outbox polling interval (every 10 seconds)

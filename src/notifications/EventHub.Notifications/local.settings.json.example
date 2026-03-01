@@ -9,8 +9,8 @@
     // Create a shared dev namespace in Azure and retrieve the connection string via the Azure portal
     // or: az servicebus namespace authorization-rule keys list ...
     "ServiceBusConnectionString": "<your-sb-connection-string>",
-    "ServiceBus__TopicName": "notifications",
-    "ServiceBus__SubscriptionName": "email",
+    "ServiceBusTopicName": "notifications",
+    "ServiceBusSubscriptionName": "email",
 
     // --- Outbox polling ---
     // Every 10 seconds. Format: {second} {minute} {hour} {day} {month} {day-of-week}
