@@ -74,9 +74,8 @@ var kvBaseUri = 'https://${keyVaultName}${az.environment().suffixes.keyvaultDns}
 
 // Pre-computed versionless Key Vault secret URIs (trailing / = always-current version).
 // Used by both the API and the Functions app so neither depends on keyVault module outputs.
-var sqlConnectionStringSecretUri      = '${kvBaseUri}secrets/sql-connection-string/'
+var sqlConnectionStringSecretUri        = '${kvBaseUri}secrets/sql-connection-string/'
 var serviceBusConnectionStringSecretUri = '${kvBaseUri}secrets/servicebus-connection-string/'
-var storageConnectionStringSecretUri  = '${kvBaseUri}secrets/storage-connection-string/'
 
 // Storage account name: <=24 chars, lowercase alphanumeric only.
 var storageAccountName = toLower('${take(replace(baseName, '-', ''), 8)}${environment}${take(uniqueString(resourceGroup().id), 8)}')
@@ -193,7 +192,6 @@ module keyVault 'modules/keyVault.bicep' = {
     secrets: {
       'sql-connection-string': sqlConnectionString
       'servicebus-connection-string': serviceBus.outputs.primaryConnectionString
-      'storage-connection-string': storage.outputs.primaryConnectionString
     }
   }
 }

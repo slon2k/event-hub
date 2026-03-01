@@ -20,11 +20,8 @@ param serviceBusConnectionStringSecretUri string
 @description('Key Vault secret URI for the SQL Server connection string.')
 param sqlConnectionStringSecretUri string
 
-@description('Key Vault secret URI for the Azure Functions storage account connection string.')
-param storageConnectionStringSecretUri string = ''
-
-@description('Storage account name for managed identity access (preferred over connection string).')
-param storageAccountName string = ''
+@description('Storage account name for managed identity access via managed identity.')
+param storageAccountName string
 
 @description('Application Insights connection string for telemetry. Leave empty to disable.')
 param applicationInsightsConnectionString string = ''
@@ -97,25 +94,18 @@ var defaultAppSettings = [
   }
 ]
 
-// Storage — use managed identity when storageAccountName is provided to avoid the
-// KV-reference bootstrapping race: the Functions runtime needs storage before KV refs resolve.
-var storageSettings = !empty(storageAccountName)
-  ? [
-      {
-        name: 'AzureWebJobsStorage__accountName'
-        value: storageAccountName
-      }
-      {
-        name: 'AzureWebJobsStorage__credential'
-        value: 'managedidentity'
-      }
-    ]
-  : [
-      {
-        name: 'AzureWebJobsStorage'
-        value: '@Microsoft.KeyVault(SecretUri=${storageConnectionStringSecretUri})'
-      }
-    ]
+// Storage — managed identity avoids the KV-reference bootstrapping race:
+// the Functions runtime needs storage before KV refs resolve.
+var storageSettings = [
+  {
+    name: 'AzureWebJobsStorage__accountName'
+    value: storageAccountName
+  }
+  {
+    name: 'AzureWebJobsStorage__credential'
+    value: 'managedidentity'
+  }
+]
 
 var aiSettings = !empty(applicationInsightsConnectionString)
   ? [

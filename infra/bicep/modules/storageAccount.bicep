@@ -40,8 +40,6 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
 
 output storageAccountName string = storageAccount.name
 output storageAccountId string = storageAccount.id
-#disable-next-line outputs-should-not-contain-secrets
-output primaryConnectionString string = 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
 
 // RBAC role assignments for managed identity access (one set per principal)
 resource blobOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for principalId in functionAppPrincipalIds: {
