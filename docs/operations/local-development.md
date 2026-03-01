@@ -163,6 +163,7 @@ cp src/notifications/EventHub.Notifications/local.settings.json.example \
     "AcsEmail__UseStub": "true",
     "AcsEmail__ConnectionString": "<your-acs-connection-string>",
     "AcsEmail__SenderAddress": "noreply@eventhub.example.com",
+    "EmailOutboxTableName": "EmailOutbox",
     "App__BaseUrl": "http://localhost:5165"
   },
   "ConnectionStrings": {
@@ -171,7 +172,7 @@ cp src/notifications/EventHub.Notifications/local.settings.json.example \
 }
 ```
 
-> `AcsEmail__UseStub=true` logs email content to the console — no real ACS resource needed locally.
+> `AcsEmail__UseStub=true` writes emails to the `EmailOutbox` table in Azurite instead of sending via ACS. Inspect rows in **Azure Storage Explorer** (connect to Azurite) or the VS Code Azure extension. No real ACS resource needed locally.
 
 ### Option B: Skip Service Bus locally
 
@@ -186,7 +187,7 @@ For local development, use **one of the following**:
 | Approach | How |
 |---|---|
 | Real ACS dev resource | Use the connection string from the dev ACS resource in Key Vault |
-| Stub / mock | Set `AcsEmail:UseStub=true` in `local.settings.json` — logs email content to the console instead of sending |
+| Stub (Table Storage) | Set `AcsEmail__UseStub=true` in `local.settings.json` — writes emails to the `EmailOutbox` table in Azurite. Inspect via Azure Storage Explorer or the VS Code Azure extension. In the dev Azure environment the same table appears in the function app's storage account. |
 
 ---
 
@@ -217,26 +218,30 @@ Before running requests:
 
 ### 6.1 Testing the invitation RSVP flow
 
-The raw RSVP token is **never persisted** — it exists only in the `InvitationSent` domain event payload, which is stored as JSON in `OutboxMessages`. To get it for local testing:
+The raw RSVP token is **never persisted to the database** — it is embedded in the `InvitationSent` domain event and delivered to the email stub.
+
+**Primary method — `EmailOutbox` table (recommended):**
+
+1. Send an invitation via `POST /api/events/{eventId}/invitations`.
+2. Wait ~10 seconds for `ProcessOutboxFunction` to publish the outbox message and `SendEmailFunction` to process it.
+3. Open **Azure Storage Explorer** → Azurite → Tables → `EmailOutbox` (locally) or the function app's storage account → Tables → `EmailOutbox` (dev Azure).
+4. Filter by `PartitionKey eq '<eventId>'`. Copy the `RsvpToken` column value for the matching row.
+5. Paste `InvitationId` → `@invitationId` and `RsvpToken` → `@rawToken` in your `.http` file.
+6. Call `POST /api/invitations/respond`.
+
+**Fallback — SQL query (before outbox is processed):**
 
 ```sql
 SELECT TOP 1
-    JSON_VALUE(Payload, '$.InvitationId')  AS InvitationId,
-    JSON_VALUE(Payload, '$.RsvpToken')     AS RawToken,
+    JSON_VALUE(Payload, '$.InvitationId')   AS InvitationId,
+    JSON_VALUE(Payload, '$.RsvpToken')      AS RawToken,
     JSON_VALUE(Payload, '$.TokenExpiresAt') AS ExpiresAt
 FROM OutboxMessages
 WHERE Type LIKE '%InvitationSent%'
 ORDER BY CreatedAt DESC;
 ```
 
-In a production-like environment the raw token is delivered by email. Locally:
-
-1. Send an invitation via `POST /api/events/{eventId}/invitations`.
-2. Run the query above (e.g. in SQL Server Object Explorer or Azure Data Studio) against your local SQL instance.
-3. Copy `InvitationId` → `@invitationId` and `RawToken` → `@rawToken` in your `.http` file.
-4. Call `POST /api/invitations/respond` with those values.
-
-> **Tip:** Tokens expire after 72 hours. If yours has expired, use `POST /api/events/{eventId}/invitations/{invitationId}/reissue` to get a fresh one (repeat the SQL query afterwards).
+> **Tip:** Tokens expire after 72 hours. If yours has expired, use `POST /api/events/{eventId}/invitations/{invitationId}/reissue` to get a fresh one (the new token appears in the `EmailOutbox` table after the next outbox cycle).
 
 ### Targeting the dev Azure environment
 
@@ -336,5 +341,6 @@ dotnet run --project src/backend/EventHub.Api -- --seed
 | `OutboxMessages` not being published | Ensure `ProcessOutboxFunction` is running (`func start` in notifications project). Also verify `OutboxTimerCronExpression` is present in `local.settings.json` — note: **single word, no double underscore**. |
 | Timer trigger error: `does not resolve to a value` | `OutboxTimerCronExpression` is missing from `local.settings.json` or was misspelled with `__` separators |
 | `SendEmailFunction` never fires, messages sit in Service Bus | `ServiceBusTopicName` or `ServiceBusSubscriptionName` missing or named with `__` — use flat keys as shown in `local.settings.json.example` |
+| `SendEmailFunction` fails with `127.0.0.1:10002` socket error in Azure | `TableStorageEmailSender` is resolving the storage account name via `IConfiguration["AzureWebJobsStorage:accountName"]` (colon) but the setting name in code uses `__` — always use `:` as the section separator when reading from `IConfiguration` in C# code. The env var name with `__` is correct in Bicep/app settings; the host converts it to `:` at load time. |
 | `Failed to connect to Service Bus` | Check `ServiceBusConnectionString` in `local.settings.json` or user secrets |
 | EF migrations out of date | Run `dotnet ef database update` after pulling changes that include new migrations |
