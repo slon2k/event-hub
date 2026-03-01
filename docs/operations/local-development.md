@@ -335,5 +335,6 @@ dotnet run --project src/backend/EventHub.Api -- --seed
 | `Health check sql Unhealthy` | SQL Server container is not running locally, or (Azure) the Key Vault reference for `DefaultConnection` failed to resolve — check App Service Configuration |
 | `OutboxMessages` not being published | Ensure `ProcessOutboxFunction` is running (`func start` in notifications project). Also verify `OutboxTimerCronExpression` is present in `local.settings.json` — note: **single word, no double underscore**. |
 | Timer trigger error: `does not resolve to a value` | `OutboxTimerCronExpression` is missing from `local.settings.json` or was misspelled with `__` separators |
+| `SendEmailFunction` never fires, messages sit in Service Bus | `ServiceBusTopicName` or `ServiceBusSubscriptionName` missing or named with `__` — use flat keys as shown in `local.settings.json.example` |
 | `Failed to connect to Service Bus` | Check `ServiceBusConnectionString` in `local.settings.json` or user secrets |
 | EF migrations out of date | Run `dotnet ef database update` after pulling changes that include new migrations |
