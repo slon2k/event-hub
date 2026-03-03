@@ -66,7 +66,7 @@ az deployment group what-if `
 
 ## API Deployment
 
-### Automatic deployment (recommended)
+### Automatic API deployment (recommended)
 
 API deploys automatically via [deploy-api.yml](../../.github/workflows/deploy-api.yml):
 
@@ -94,7 +94,7 @@ az webapp deploy \
 
 ## Functions Deployment
 
-### Automatic deployment (recommended)
+### Automatic Functions deployment (recommended)
 
 Functions deploy automatically via [deploy-notifications.yml](../../.github/workflows/deploy-notifications.yml):
 
