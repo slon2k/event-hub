@@ -12,9 +12,12 @@
     "ServiceBusTopicName": "notifications",
     "ServiceBusSubscriptionName": "email",
 
-    // --- Outbox polling ---
-    // Every 10 seconds. Format: {second} {minute} {hour} {day} {month} {day-of-week}
-    "OutboxTimerCronExpression": "*/10 * * * * *",
+    // --- Outbox processing ---
+    // Fallback timer: every 2 hours. Format: {second} {minute} {hour} {day} {month} {day-of-week}
+    // Primary processing is driven by the outbox-trigger queue (ServiceBusTrigger on RunOnDemand).
+    "OutboxTimerCronExpression": "0 0 */2 * * *",
+    // Queue that the API drops a wake-up ping into after every domain save.
+    "OutboxTriggerQueueName": "outbox-trigger",
 
     // --- ACS Email ---
     // UseStub=true writes emails to Azure Table Storage (Azurite locally) instead of sending via ACS.

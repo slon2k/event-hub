@@ -8,10 +8,26 @@ using Microsoft.Extensions.Logging;
 namespace EventHub.Notifications.Functions;
 
 /// <summary>
-/// Polls the <c>OutboxMessages</c> table every 10 seconds and publishes unpublished
-/// entries to the Azure Service Bus <c>notifications</c> topic.
-/// Marks each message as published immediately after a successful send so that
-/// partial failures leave unprocessed rows available for the next timer tick.
+/// Processes <c>OutboxMessages</c> and publishes them to the Azure Service Bus
+/// <c>notifications</c> topic using two complementary triggers:
+/// <list type="bullet">
+///   <item>
+///     <term>On-demand (<see cref="RunOnDemand"/>)</term>
+///     <description>
+///       Fires instantly when the API sends a wake-up ping to the
+///       <c>outbox-trigger</c> queue after writing a domain event.
+///       This eliminates constant DB polling and allows the free-tier DB to
+///       auto-pause between real user activity.
+///     </description>
+///   </item>
+///   <item>
+///     <term>Fallback (<see cref="RunFallback"/>)</term>
+///     <description>
+///       Fires according to the schedule to catch any pings lost during API restarts or
+///       transient Service Bus errors.
+///     </description>
+///   </item>
+/// </list>
 /// </summary>
 public sealed class ProcessOutboxFunction(
     EventHubDbContext dbContext,
@@ -21,10 +37,31 @@ public sealed class ProcessOutboxFunction(
 {
     private const int BatchSize = 50;
 
-    [Function("ProcessOutboxFunction")]
-    public async Task Run(
-        [TimerTrigger("%OutboxTimerCronExpression%")] TimerInfo timerInfo,
+    /// <summary>
+    /// On-demand trigger: fired by the API wake-up ping dropped into the
+    /// <c>outbox-trigger</c> queue immediately after a domain save.
+    /// </summary>
+    [Function("ProcessOutboxOnDemand")]
+    public async Task RunOnDemand(
+        [ServiceBusTrigger(
+            "%OutboxTriggerQueueName%",
+            Connection = "ServiceBusConnectionString")]
+        ServiceBusReceivedMessage _,
         CancellationToken cancellationToken)
+        => await ProcessAsync(cancellationToken);
+
+    /// <summary>
+    /// Fallback timer: fires according to the schedule to process any outbox messages
+    /// whose wake-up ping was lost (e.g. API crash before sending the ping).
+    /// The long interval lets the DB auto-pause between real activity.
+    /// </summary>
+    [Function("ProcessOutboxFallback")]
+    public async Task RunFallback(
+        [TimerTrigger("%OutboxTimerCronExpression%")] TimerInfo _,
+        CancellationToken cancellationToken)
+        => await ProcessAsync(cancellationToken);
+
+    private async Task ProcessAsync(CancellationToken cancellationToken)
     {
         var topicName = configuration["ServiceBusTopicName"] ?? "notifications";
 
