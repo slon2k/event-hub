@@ -82,10 +82,10 @@ var defaultAppSettings = [
     name: 'ServiceBusSubscriptionName'
     value: 'email'
   }
-  // Outbox polling interval (every 10 seconds)
+  // Outbox polling interval (every 5 minutes — fallback only; prefer wake-up queue trigger)
   {
     name: 'OutboxTimerCronExpression'
-    value: '*/10 * * * * *'
+    value: '0 */5 * * * *'
   }
   // Key Vault URI (informational — used by any code that constructs KV references at runtime)
   {
