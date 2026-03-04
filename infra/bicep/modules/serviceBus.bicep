@@ -64,6 +64,24 @@ resource topicSubscriptions 'Microsoft.ServiceBus/namespaces/topics/subscription
   }
 ]
 
+// ── Outbox wake-up queue ────────────────────────────────────────────────
+// The API sends a lightweight "ping" here after writing domain events to the
+// OutboxMessages table. ProcessOutboxFunction reacts via ServiceBusTrigger,
+// processing the outbox on demand instead of polling on a fixed interval.
+// Duplicate detection collapses burst pings from concurrent domain saves.
+
+resource outboxTriggerQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+  parent: namespace
+  name: 'outbox-trigger'
+  properties: {
+    defaultMessageTimeToLive: 'PT5M'              // pings auto-expire; fallback timer covers misses
+    requiresDuplicateDetection: true              // collapses burst pings into one wake-up
+    duplicateDetectionHistoryTimeWindow: 'PT1M'
+    maxDeliveryCount: 1                           // no retries needed — fallback timer handles stragglers
+    deadLetteringOnMessageExpiration: false
+  }
+}
+
 // ── Authorization rule (shared key for apps without managed identity support) ─
 
 resource sendListenRule 'Microsoft.ServiceBus/namespaces/AuthorizationRules@2022-10-01-preview' = {

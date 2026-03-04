@@ -82,10 +82,16 @@ var defaultAppSettings = [
     name: 'ServiceBusSubscriptionName'
     value: 'email'
   }
-  // Outbox polling interval (every 5 minutes — fallback only; prefer wake-up queue trigger)
+  // Outbox trigger queue name (must match the queue created in serviceBus.bicep)
+  {
+    name: 'OutboxTriggerQueueName'
+    value: 'outbox-trigger'
+  }
+  // Fallback timer: every 2 hours — long enough for the DB to auto-pause between real events.
+  // Primary processing is driven by the outbox-trigger queue (ServiceBusTrigger).
   {
     name: 'OutboxTimerCronExpression'
-    value: '0 */5 * * * *'
+    value: '0 0 */2 * * *'
   }
   // Key Vault URI (informational — used by any code that constructs KV references at runtime)
   {

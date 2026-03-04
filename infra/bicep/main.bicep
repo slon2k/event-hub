@@ -109,6 +109,7 @@ module sql 'modules/sql.bicep' = {
 
 var sqlConnectionString = 'Server=tcp:${sql.outputs.sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};User ID=${sqlAdminUser};Password=${sqlAdminPassword};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
 var sqlConnectionStringKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/sql-connection-string/)'
+var serviceBusConnectionStringKvRef = '@Microsoft.KeyVault(SecretUri=${serviceBusConnectionStringSecretUri})'
 
 module api 'modules/appService.bicep' = {
   name: 'appService'
@@ -123,6 +124,16 @@ module api 'modules/appService.bicep' = {
       {
         name: 'KeyVault__Uri'
         value: kvBaseUri
+      }
+      {
+        // Enables the ServiceBusOutboxNotifier in Infrastructure so the API sends
+        // a wake-up ping to the outbox-trigger queue after each domain save.
+        name: 'ServiceBusConnectionString'
+        value: serviceBusConnectionStringKvRef
+      }
+      {
+        name: 'ServiceBus__OutboxTriggerQueueName'
+        value: 'outbox-trigger'
       }
     ])
     applicationInsightsConnectionString: appInsights.outputs.connectionString
