@@ -139,8 +139,12 @@ az servicebus namespace authorization-rule keys list \
 Set via user secrets (API):
 
 ```bash
-dotnet user-secrets set "ServiceBus:ConnectionString" "<connection-string>"
+dotnet user-secrets set "ServiceBusConnectionString" "<connection-string>" --project src/backend/EventHub.Api
 ```
+
+This enables the `ServiceBusOutboxNotifier` so the API sends a wake-up ping to the
+`outbox-trigger` queue after every domain save (invitation created, event cancelled, etc.).
+Without this setting the API still works — the Functions fallback timer processes the outbox every 2 hours.
 
 Set in `src/notifications/EventHub.Notifications/local.settings.json` (not committed).
 Copy the example file and fill in your values:
@@ -159,9 +163,9 @@ cp src/notifications/EventHub.Notifications/local.settings.json.example \
     "ServiceBusConnectionString": "<your-sb-connection-string>",
     "ServiceBusTopicName": "notifications",
     "ServiceBusSubscriptionName": "email",
-    "OutboxTimerCronExpression": "*/10 * * * * *",
+    "OutboxTriggerQueueName": "outbox-trigger",
+    "OutboxTimerCronExpression": "0 0 */2 * * *",
     "AcsEmail__UseStub": "true",
-    "AcsEmail__ConnectionString": "<your-acs-connection-string>",
     "AcsEmail__SenderAddress": "noreply@eventhub.example.com",
     "EmailOutboxTableName": "EmailOutbox",
     "App__BaseUrl": "http://localhost:5165"

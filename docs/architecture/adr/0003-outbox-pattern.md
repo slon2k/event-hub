@@ -21,12 +21,15 @@ Neither scenario is acceptable. Distributed transactions (two-phase commit) acro
 
 ## Decision
 
-We implement the **Transactional Outbox Pattern**:
+We implement the **Transactional Outbox Pattern with a wake-up queue**:
 
 1. When a domain event is raised (e.g., `InvitationSent`), the Application layer handler writes an `OutboxMessage` row to the **same SQL database** as the domain change, inside the **same EF Core transaction**.
-2. A separate process (`ProcessOutboxFunction`, Azure Functions Timer trigger) periodically reads unpublished rows, publishes them to Service Bus, and marks them as published.
+2. After the transaction commits, `EventHubDbContext` calls `IOutboxNotifier.NotifyAsync()`, which sends a lightweight ping to the `outbox-trigger` Service Bus queue. This wakes the `ProcessOutboxOnDemand` Azure Function immediately.
+3. `ProcessOutboxOnDemand` (ServiceBusTrigger) reads unpublished rows, publishes them to the `notifications` topic, and marks them published.
+4. A `ProcessOutboxFallback` timer function (every 2 hours) acts as a safety net for any pings lost due to API restarts or transient failures.
+5. The `IOutboxNotifier` is optional — if `ServiceBusConnectionString` is not configured, the notifier is not registered and the DB context skips the ping gracefully.
 
-The database is the single source of truth. The message cannot be lost as long as the database transaction succeeds.
+The database remains the single source of truth. The wake-up ping is best-effort; if it is lost, the fallback timer guarantees eventual processing.
 
 ```
 BEGIN TRANSACTION
@@ -34,9 +37,12 @@ BEGIN TRANSACTION
   INSERT INTO OutboxMessages (Type='InvitationSent', Payload='{...}', PublishedAt=NULL)
 COMMIT
 
--- later, independently --
+-- immediately after commit --
+ServiceBus.Send(queue: 'outbox-trigger', message: 'ping')  ← best-effort, swallows failures
+
+-- on ping received (or every 2h fallback) --
 SELECT * FROM OutboxMessages WHERE PublishedAt IS NULL
-→ Publish to Service Bus
+→ Publish to Service Bus topic 'notifications'
 → UPDATE OutboxMessages SET PublishedAt = NOW()
 ```
 
@@ -58,7 +64,7 @@ SELECT * FROM OutboxMessages WHERE PublishedAt IS NULL
 - **Observability**: unpublished or failed outbox rows are immediately visible in the database.
 
 ### Negative / Trade-offs
-- **Eventual consistency**: email delivery is delayed by up to one Timer interval (10s by default) after the API response.
-- **At-least-once delivery**: if `ProcessOutboxFunction` crashes after publishing but before marking the row, the message will be published again on the next run. Consumers (`SendEmailFunction`) must tolerate duplicate messages.
-- **Polling overhead**: the Timer query runs every 10 seconds regardless of load — negligible at this scale but worth noting.
+- **Eventual consistency**: email delivery is near-instantaneous in the happy path (ping → on-demand trigger) but can be delayed up to 2 hours if the ping is lost and the fallback timer fires.
+- **At-least-once delivery**: if `ProcessOutboxOnDemand` crashes after publishing but before marking the row, the message will be published again on the next run (ping or fallback timer). Consumers (`SendEmailFunction`) must tolerate duplicate messages. Service Bus duplicate detection on the `notifications` topic mitigates this via `MessageId = outbox.Id`.
+- **Minimal polling overhead**: the fallback timer query runs every 2 hours and only touches the DB once if there is nothing to process. Constant polling is eliminated.
 - **Schema coupling**: the `OutboxMessage` table resides in the application database, coupling the outbox lifecycle to the application schema.

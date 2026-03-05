@@ -1,10 +1,12 @@
 # Notification Flow
 
 | | |
-|---|---|
+|---|
+---|
 | **Status** | Draft |
 | **Date** | 2026-02-23 |
-| **Version** | 0.1 |
+| **Updated** | 2026-03-04 |
+| **Version** | 0.2 |
 
 ---
 
@@ -18,9 +20,12 @@ Notifications are delivered **asynchronously** using the Outbox pattern combined
 
 | Component | Technology | Role |
 |---|---|---|
-| API Command Handler | MediatR, EF Core | Writes domain change + OutboxMessage in one transaction |
+| API Command Handler | MediatR, EF Core | Writes domain change + OutboxMessage in one transaction, then sends a wake-up ping |
+| `IOutboxNotifier` / `ServiceBusOutboxNotifier` | `EventHub.Infrastructure` | Sends a lightweight ping to `outbox-trigger` queue after each successful domain save |
 | `OutboxMessage` table | Azure SQL | Durable staging area for unpublished events |
-| `ProcessOutboxFunction` | Azure Functions — TimerTrigger | Polls outbox, publishes to Service Bus |
+| `outbox-trigger` queue | Azure Service Bus | Wake-up channel; receives ping from API; triggers `ProcessOutboxOnDemand` |
+| `ProcessOutboxOnDemand` | Azure Functions — ServiceBusTrigger | Primary: fires instantly when a ping arrives, processes outbox on demand |
+| `ProcessOutboxFallback` | Azure Functions — TimerTrigger (every 2h) | Safety net: catches any pings lost during API restarts or transient errors |
 | Service Bus Topic `notifications` | Azure Service Bus | Fan-out pub/sub hub |
 | Subscription `email` | Azure Service Bus | Filter for email delivery |
 | `SendEmailFunction` | Azure Functions — ServiceBusTrigger | Reads from subscription, delivers via ACS Email |
@@ -73,14 +78,14 @@ The flow is identical structurally, but:
 - The `SendEmailFunction` sends one email per recipient (fan-out inside the function).
 
 ```
- Client          API Handler         DB (SQL)         OutboxFunction    Service Bus      EmailFunction     ACS Email
-   │  DELETE /events/{id} ──> │         │                   │                │                 │               │
-   │                 │ BEGIN TRANSACTION                    │                │                 │               │
-   │                 │ UPDATE Event → Cancelled             │                │                 │               │
-   │                 │ INSERT OutboxMsg (EventCancelled)    │                │                 │               │
-   │                 │ COMMIT                               │                │                 │               │
-   │  204 No Content <── │               │                  │                │                 │               │
-   │                 │                   │  (same Timer/ServiceBus flow as above) ...           │               │
+ Client          API Handler         DB (SQL)         outbox-trigger   OutboxFunction    Service Bus      EmailFunction     ACS Email
+   │  DELETE /events/{id} ──> │         │                  queue              │                │                 │               │
+   │                 │ BEGIN TRANSACTION                    │                 │                │                 │               │
+   │                 │ UPDATE Event → Cancelled             │                 │                │                 │               │
+   │                 │ INSERT OutboxMsg (EventCancelled)    │                 │                │                 │               │
+   │                 │ COMMIT                               │                 │                │                 │               │
+   │                 │   Send ping ─────────────────────────>                 │                │                 │               │
+   │  204 No Content <── │               │                  │  (same ServiceBus/outbox flow as above) ...       │               │
 ```
 
 ---
@@ -149,9 +154,10 @@ The publisher (`ProcessOutboxFunction`) does not change.
 
 | Failure Scenario | Behaviour |
 |---|---|
-| API crashes after COMMIT | OutboxMessage remains unpublished; Timer picks it up on next run |
-| ProcessOutboxFunction fails to publish | Row stays unpublished (`PublishedAt` = null, `RetryCount` increments); retried on next timer tick |
-| SendEmailFunction throws | Service Bus retries delivery up to configured `MaxDeliveryCount` |
+| API crashes after COMMIT but before ping | OutboxMessage remains unpublished; fallback timer (every 2h) picks it up |
+| Ping send fails (transient Service Bus error) | `ServiceBusOutboxNotifier` swallows the exception and logs a warning; domain transaction is not rolled back; fallback timer covers the gap |
+| `ProcessOutboxOnDemand` fails to publish | Row stays unpublished; fallback timer retries on next 2h tick |
+| `SendEmailFunction` throws | Service Bus retries delivery up to configured `MaxDeliveryCount` |
 | Retries exhausted | Message moved to **Dead-Letter Queue** (`notifications/subscriptions/email/$deadletterqueue`) |
 | ACS Email rejects (invalid address) | `SendEmailFunction` catches the error, logs it, and completes the message (no DLQ for undeliverable addresses) |
 
@@ -168,9 +174,12 @@ The publisher (`ProcessOutboxFunction`) does not change.
 
 | Setting | Location | Example Value |
 |---|---|---|
-| `ServiceBus:ConnectionString` | App Service config / Key Vault | `Endpoint=sb://...` |
-| `ServiceBus:TopicName` | appsettings | `notifications` |
-| `ServiceBus:SubscriptionName` | Functions `local.settings.json` / App config | `email` |
+| `ServiceBusConnectionString` | API app settings / Key Vault | `Endpoint=sb://...` |
+| `ServiceBus__OutboxTriggerQueueName` | API app settings | `outbox-trigger` |
+| `ServiceBusConnectionString` | Functions config / Key Vault | `Endpoint=sb://...` |
+| `ServiceBusTopicName` | Functions config | `notifications` |
+| `ServiceBusSubscriptionName` | Functions config | `email` |
+| `OutboxTriggerQueueName` | Functions config | `outbox-trigger` |
+| `OutboxTimerCronExpression` | Functions config | `0 0 */2 * * *` (every 2 hours — fallback only) |
 | `AcsEmail:ConnectionString` | Functions config / Key Vault | `endpoint=https://...` |
-| `AcsEmail:SenderAddress` | appsettings | `noreply@eventhub.example.com` |
-| `Outbox:TimerCronExpression` | `host.json` | `*/10 * * * * *` (every 10s) |
+| `AcsEmail:SenderAddress` | Functions config | `noreply@eventhub.example.com` |

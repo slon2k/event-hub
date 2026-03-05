@@ -11,7 +11,7 @@ A training application demonstrating production-grade patterns at small scale: a
 | Rich Domain Model with Domain Events | `EventHub.Domain` |
 | Outbox Pattern (reliable messaging, no dual-write) | `EventHub.Infrastructure` + `EventHub.Notifications` |
 | Azure Service Bus (Topics + Subscriptions) | Notification pipeline |
-| Azure Functions (Timer trigger + ServiceBus trigger) | `src/notifications/EventHub.Notifications` |
+| Azure Functions (ServiceBusTrigger on-demand + 2h fallback TimerTrigger) | `src/notifications/EventHub.Notifications` |
 | Azure Communication Services Email | Transactional email delivery |
 | Azure Entra ID (JWT Bearer + App Roles) | Authentication & Authorization |
 | Infrastructure as Code (Azure Bicep) | `infra/bicep/` |
