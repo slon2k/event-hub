@@ -23,7 +23,8 @@ A training application demonstrating production-grade patterns at small scale: a
 ├── .github/
 │   └── workflows/
 │       ├── deploy-api.yml          # Build, test and deploy the API
-│       └── deploy-infra.yml        # Deploy Azure infrastructure
+│       ├── deploy-infra.yml        # Deploy Azure infrastructure
+│       └── deploy-notifications.yml # Build, test and deploy Azure Functions
 ├── docs/
 │   ├── requirements/
 │   │   └── functional-requirements.md
@@ -117,6 +118,9 @@ See [infra/README.md](infra/README.md) or the [deployment runbook](docs/operatio
 | Deploy API | Push to `development` | dev |
 | Deploy API | Push to `master` | test |
 | Deploy API | Manual (master only) | prod |
+| Deploy Notifications | Push to `development` | dev |
+| Deploy Notifications | Push to `master` | test |
+| Deploy Notifications | Manual | prod |
 
 Authentication to Azure uses OIDC — no long-lived secrets stored in GitHub.
 

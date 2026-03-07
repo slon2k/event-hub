@@ -7,6 +7,7 @@ on:
       - master
     paths:
       - 'src/backend/**'
+      - 'src/notifications/**'
       - 'tests/**'
   pull_request:
     branches:
@@ -14,6 +15,7 @@ on:
       - master
     paths:
       - 'src/backend/**'
+      - 'src/notifications/**'
       - 'tests/**'
   workflow_dispatch:
     inputs:

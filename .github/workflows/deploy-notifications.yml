@@ -47,7 +47,10 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test --no-build --configuration Release
+        run: |
+          dotnet test tests/EventHub.Notifications.UnitTests/EventHub.Notifications.UnitTests.csproj \
+            tests/EventHub.Notifications.IntegrationTests/EventHub.Notifications.IntegrationTests.csproj \
+            --no-build --configuration Release --verbosity normal
 
       - name: Publish
         run: dotnet publish ${{ env.NOTIFICATIONS_PROJECT }} --no-build --configuration Release --output publish/notifications
