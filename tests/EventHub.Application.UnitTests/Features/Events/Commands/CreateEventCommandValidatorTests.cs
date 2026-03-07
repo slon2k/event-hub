@@ -7,7 +7,7 @@ public class CreateEventCommandValidatorTests
     private readonly CreateEventCommandValidator _validator = new();
 
     [Fact]
-    public void Validate_Should_HaveError_WhenTitleIsEmpty()
+    public void Validate_WhenTitleIsEmpty_ReturnsValidationError()
     {
         var command = ValidCommand() with { Title = string.Empty };
 
@@ -18,7 +18,7 @@ public class CreateEventCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_Should_HaveError_WhenTitleExceedsMaxLength()
+    public void Validate_WhenTitleExceedsMaxLength_ReturnsValidationError()
     {
         var command = ValidCommand() with { Title = new string('a', 201) };
 
@@ -29,7 +29,7 @@ public class CreateEventCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_Should_HaveError_WhenDescriptionExceedsMaxLength()
+    public void Validate_WhenDescriptionExceedsMaxLength_ReturnsValidationError()
     {
         var command = ValidCommand() with { Description = new string('a', 2001) };
 
@@ -40,7 +40,7 @@ public class CreateEventCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_Should_HaveError_WhenDateIsNotInFuture()
+    public void Validate_WhenDateIsNotInFuture_ReturnsValidationError()
     {
         var command = ValidCommand() with { DateTime = DateTimeOffset.UtcNow.AddMinutes(-1) };
 
@@ -51,7 +51,7 @@ public class CreateEventCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_Should_HaveError_WhenLocationExceedsMaxLength()
+    public void Validate_WhenLocationExceedsMaxLength_ReturnsValidationError()
     {
         var command = ValidCommand() with { Location = new string('a', 501) };
 
@@ -64,7 +64,7 @@ public class CreateEventCommandValidatorTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void Validate_Should_HaveError_WhenCapacityIsNotPositive(int capacity)
+    public void Validate_WhenCapacityIsNotPositive_ReturnsValidationError(int capacity)
     {
         var command = ValidCommand() with { Capacity = capacity };
 
@@ -75,7 +75,7 @@ public class CreateEventCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_Should_HaveError_WhenOrganizerIdIsEmpty()
+    public void Validate_WhenOrganizerIdIsEmpty_ReturnsValidationError()
     {
         var command = ValidCommand() with { OrganizerId = string.Empty };
 
@@ -86,7 +86,7 @@ public class CreateEventCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_Should_Pass_ForValidCommand()
+    public void Validate_WhenCalled_Passes_ForValidCommand()
     {
         var command = ValidCommand();
 

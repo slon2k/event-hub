@@ -7,7 +7,7 @@ public class SendInvitationCommandValidatorTests
     private readonly SendInvitationCommandValidator _validator = new();
 
     [Fact]
-    public void Validate_Should_HaveError_WhenParticipantEmailIsEmpty()
+    public void Validate_WhenParticipantEmailIsEmpty_ReturnsValidationError()
     {
         var command = ValidCommand() with { ParticipantEmail = string.Empty };
 
@@ -18,7 +18,7 @@ public class SendInvitationCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_Should_HaveError_WhenParticipantEmailIsInvalid()
+    public void Validate_WhenParticipantEmailIsInvalid_ReturnsValidationError()
     {
         var command = ValidCommand() with { ParticipantEmail = "not-an-email" };
 
@@ -29,7 +29,7 @@ public class SendInvitationCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_Should_HaveError_WhenParticipantEmailExceedsMaxLength()
+    public void Validate_WhenParticipantEmailExceedsMaxLength_ReturnsValidationError()
     {
         var localPart = new string('a', 251);
         var command = ValidCommand() with { ParticipantEmail = $"{localPart}@x.com" };
@@ -41,7 +41,7 @@ public class SendInvitationCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_Should_Pass_ForValidCommand()
+    public void Validate_WhenCalled_Passes_ForValidCommand()
     {
         var command = ValidCommand();
 

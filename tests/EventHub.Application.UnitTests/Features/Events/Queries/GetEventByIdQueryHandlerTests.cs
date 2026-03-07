@@ -11,7 +11,7 @@ namespace EventHub.Application.UnitTests.Features.Events.Queries;
 public class GetEventByIdQueryHandlerTests
 {
     [Fact]
-    public async Task Handle_Should_ReturnEventDetailDto_WhenEventExists()
+    public async Task Handle_WhenEventExists_ReturnsEventDetailDto()
     {
         var ev = CreatePublishedEvent("organizer-1");
         var mockContext = BuildMockContext([ev]);
@@ -26,7 +26,7 @@ public class GetEventByIdQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowNotFoundException_WhenEventDoesNotExist()
+    public async Task Handle_WhenEventDoesNotExist_ThrowsNotFoundException()
     {
         var mockContext = BuildMockContext([]);
 
@@ -36,7 +36,7 @@ public class GetEventByIdQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_MapInvitations_WhenEventHasInvitations()
+    public async Task Handle_WhenEventHasInvitations_MapsInvitations()
     {
         var ev = CreatePublishedEvent("organizer-1");
         var invitation = ev.AddInvitation(
@@ -55,7 +55,7 @@ public class GetEventByIdQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ReturnEmptyInvitationList_WhenEventHasNoInvitations()
+    public async Task Handle_WhenEventHasNoInvitations_ReturnsEmptyInvitationList()
     {
         var ev = CreatePublishedEvent("organizer-1");
         var mockContext = BuildMockContext([ev]);
@@ -67,7 +67,7 @@ public class GetEventByIdQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_MapAllDetailFields()
+    public async Task Handle_WhenCalled_MapsAllDetailFields()
     {
         var ev = Event.Create(
             "Board Games Night",
