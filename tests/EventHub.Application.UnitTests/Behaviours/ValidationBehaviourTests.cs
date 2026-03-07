@@ -11,7 +11,7 @@ public class ValidationBehaviourTests
     public record TestRequest(string Value) : IRequest<string>;
 
     [Fact]
-    public async Task Handle_Should_CallNext_WhenNoValidatorsRegistered()
+    public async Task Handle_WhenNoValidatorsRegistered_CallsNext()
     {
         var behaviour = new ValidationBehaviour<TestRequest, string>([]);
         var nextCalled = false;
@@ -26,7 +26,7 @@ public class ValidationBehaviourTests
     }
 
     [Fact]
-    public async Task Handle_Should_CallNext_WhenAllValidatorsPass()
+    public async Task Handle_WhenAllValidatorsPass_CallsNext()
     {
         var mockValidator = new Mock<IValidator<TestRequest>>();
         mockValidator
@@ -45,7 +45,7 @@ public class ValidationBehaviourTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowValidationException_WhenValidatorFails()
+    public async Task Handle_WhenValidatorFails_ThrowsValidationException()
     {
         var failures = new List<ValidationFailure>
         {
@@ -66,7 +66,7 @@ public class ValidationBehaviourTests
     }
 
     [Fact]
-    public async Task Handle_Should_NotCallNext_WhenValidatorFails()
+    public async Task Handle_WhenValidatorFails_DoesNotCallNext()
     {
         var failures = new List<ValidationFailure>
         {
@@ -90,7 +90,7 @@ public class ValidationBehaviourTests
     }
 
     [Fact]
-    public async Task Handle_Should_AggregateFailures_WhenMultipleValidatorsFail()
+    public async Task Handle_WhenMultipleValidatorsFail_AggregatesFailures()
     {
         var mockValidator1 = new Mock<IValidator<TestRequest>>();
         mockValidator1

@@ -13,7 +13,7 @@ namespace EventHub.Application.UnitTests.Features.Invitations.Commands;
 public class RespondToInvitationCommandHandlerTests
 {
     [Fact]
-    public async Task Handle_Should_AcceptInvitation_WhenTokenIsValidAndResponseIsAccept()
+    public async Task Handle_WhenTokenIsValidAndResponseIsAccept_AcceptsInvitation()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var (mockContext, mockTokenService) = BuildMocks([ev], tokenIsValid: true);
@@ -26,7 +26,7 @@ public class RespondToInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_DeclineInvitation_WhenTokenIsValidAndResponseIsDecline()
+    public async Task Handle_WhenTokenIsValidAndResponseIsDecline_DeclinesInvitation()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var (mockContext, mockTokenService) = BuildMocks([ev], tokenIsValid: true);
@@ -39,7 +39,7 @@ public class RespondToInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_CallSaveChanges_WhenResponseSucceeds()
+    public async Task Handle_WhenResponseSucceeds_CallsSaveChanges()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var (mockContext, mockTokenService) = BuildMocks([ev], tokenIsValid: true);
@@ -51,7 +51,7 @@ public class RespondToInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowNotFoundException_WhenInvitationDoesNotExist()
+    public async Task Handle_WhenInvitationDoesNotExist_ThrowsNotFoundException()
     {
         var (mockContext, mockTokenService) = BuildMocks([], tokenIsValid: true);
 
@@ -61,7 +61,7 @@ public class RespondToInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowDomainException_WhenTokenAlreadyUsed()
+    public async Task Handle_WhenTokenAlreadyUsed_ThrowsDomainException()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
 
@@ -76,7 +76,7 @@ public class RespondToInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowDomainException_WhenTokenIsInvalidOrExpired()
+    public async Task Handle_WhenTokenIsInvalidOrExpired_ThrowsDomainException()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var (mockContext, mockTokenService) = BuildMocks([ev], tokenIsValid: false);
@@ -87,7 +87,7 @@ public class RespondToInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_NotCallSaveChanges_WhenTokenIsInvalid()
+    public async Task Handle_WhenTokenIsInvalid_DoesNotCallSaveChanges()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var (mockContext, mockTokenService) = BuildMocks([ev], tokenIsValid: false);

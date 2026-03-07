@@ -10,7 +10,7 @@ public class LoggingBehaviourTests
     public record TestRequest(string Value) : IRequest<string>;
 
     [Fact]
-    public async Task Handle_Should_ReturnNextResult_OnSuccess()
+    public async Task Handle_WhenSuccessful_ReturnsNextResult()
     {
         var mockLogger = new Mock<ILogger<LoggingBehaviour<TestRequest, string>>>();
         var behaviour = new LoggingBehaviour<TestRequest, string>(mockLogger.Object);
@@ -24,7 +24,7 @@ public class LoggingBehaviourTests
     }
 
     [Fact]
-    public async Task Handle_Should_LogInformation_OnSuccess()
+    public async Task Handle_WhenSuccessful_LogsInformation()
     {
         var mockLogger = new Mock<ILogger<LoggingBehaviour<TestRequest, string>>>();
         var behaviour = new LoggingBehaviour<TestRequest, string>(mockLogger.Object);
@@ -46,7 +46,7 @@ public class LoggingBehaviourTests
     }
 
     [Fact]
-    public async Task Handle_Should_Rethrow_WhenNextThrows()
+    public async Task Handle_WhenNextThrows_Rethrows()
     {
         var mockLogger = new Mock<ILogger<LoggingBehaviour<TestRequest, string>>>();
         var behaviour = new LoggingBehaviour<TestRequest, string>(mockLogger.Object);
@@ -59,7 +59,7 @@ public class LoggingBehaviourTests
     }
 
     [Fact]
-    public async Task Handle_Should_LogError_WhenNextThrows()
+    public async Task Handle_WhenNextThrows_LogsError()
     {
         var mockLogger = new Mock<ILogger<LoggingBehaviour<TestRequest, string>>>();
         var behaviour = new LoggingBehaviour<TestRequest, string>(mockLogger.Object);

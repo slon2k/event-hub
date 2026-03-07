@@ -11,7 +11,7 @@ namespace EventHub.Application.UnitTests.Features.Invitations.Commands;
 public class CancelInvitationCommandHandlerTests
 {
     [Fact]
-    public async Task Handle_Should_CancelInvitation_WhenOrganizerMatches()
+    public async Task Handle_WhenOrganizerMatches_CancelsInvitation()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var mockContext = BuildMockContext([ev]);
@@ -24,7 +24,7 @@ public class CancelInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_CallSaveChanges_WhenCancelSucceeds()
+    public async Task Handle_WhenCancelSucceeds_CallsSaveChanges()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var mockContext = BuildMockContext([ev]);
@@ -36,7 +36,7 @@ public class CancelInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowNotFoundException_WhenEventDoesNotExist()
+    public async Task Handle_WhenEventDoesNotExist_ThrowsNotFoundException()
     {
         var mockContext = BuildMockContext([]);
 
@@ -46,7 +46,7 @@ public class CancelInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowForbiddenException_WhenOrganizerDoesNotMatch()
+    public async Task Handle_WhenOrganizerDoesNotMatch_ThrowsForbiddenException()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var mockContext = BuildMockContext([ev]);
@@ -57,7 +57,7 @@ public class CancelInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_NotCallSaveChanges_WhenEventNotFound()
+    public async Task Handle_WhenEventNotFound_DoesNotCallSaveChanges()
     {
         var mockContext = BuildMockContext([]);
 
@@ -69,7 +69,7 @@ public class CancelInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_NotCallSaveChanges_WhenOrganizerDoesNotMatch()
+    public async Task Handle_WhenOrganizerDoesNotMatch_DoesNotCallSaveChanges()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var mockContext = BuildMockContext([ev]);

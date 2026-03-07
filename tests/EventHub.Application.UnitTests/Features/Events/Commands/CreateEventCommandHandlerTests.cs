@@ -9,7 +9,7 @@ namespace EventHub.Application.UnitTests.Features.Events.Commands;
 public class CreateEventCommandHandlerTests
 {
     [Fact]
-    public async Task Handle_Should_ReturnNewGuid()
+    public async Task Handle_WhenCalled_ReturnsNewGuid()
     {
         var mockDbSet = new Mock<DbSet<Event>>();
         var mockContext = BuildMockContext(mockDbSet);
@@ -21,7 +21,7 @@ public class CreateEventCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_AddEventToContext()
+    public async Task Handle_WhenCalled_AddsEventToContext()
     {
         Event? captured = null;
         var mockDbSet = new Mock<DbSet<Event>>();
@@ -46,7 +46,7 @@ public class CreateEventCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_CallSaveChangesOnce()
+    public async Task Handle_WhenCalled_CallsSaveChangesOnce()
     {
         var mockDbSet = new Mock<DbSet<Event>>();
         var mockContext = BuildMockContext(mockDbSet);
@@ -57,7 +57,7 @@ public class CreateEventCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ReturnIdMatchingAddedEvent()
+    public async Task Handle_WhenCalled_ReturnsIdMatchingAddedEvent()
     {
         Event? captured = null;
         var mockDbSet = new Mock<DbSet<Event>>();

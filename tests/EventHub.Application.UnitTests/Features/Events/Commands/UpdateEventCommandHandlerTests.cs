@@ -10,7 +10,7 @@ namespace EventHub.Application.UnitTests.Features.Events.Commands;
 public class UpdateEventCommandHandlerTests
 {
     [Fact]
-    public async Task Handle_Should_UpdateEventFields_WhenOrganizerMatches()
+    public async Task Handle_WhenOrganizerMatches_UpdatesEventFields()
     {
         var ev = CreateEvent("organizer-1");
         var mockContext = BuildMockContext([ev]);
@@ -28,7 +28,7 @@ public class UpdateEventCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_CallSaveChanges_WhenUpdateSucceeds()
+    public async Task Handle_WhenUpdateSucceeds_CallsSaveChanges()
     {
         var ev = CreateEvent("organizer-1");
         var mockContext = BuildMockContext([ev]);
@@ -40,7 +40,7 @@ public class UpdateEventCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowNotFoundException_WhenEventDoesNotExist()
+    public async Task Handle_WhenEventDoesNotExist_ThrowsNotFoundException()
     {
         var mockContext = BuildMockContext([]);
 
@@ -50,7 +50,7 @@ public class UpdateEventCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowForbiddenException_WhenOrganizerDoesNotMatch()
+    public async Task Handle_WhenOrganizerDoesNotMatch_ThrowsForbiddenException()
     {
         var ev = CreateEvent("organizer-1");
         var mockContext = BuildMockContext([ev]);
@@ -61,7 +61,7 @@ public class UpdateEventCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_NotCallSaveChanges_WhenEventNotFound()
+    public async Task Handle_WhenEventNotFound_DoesNotCallSaveChanges()
     {
         var mockContext = BuildMockContext([]);
 
@@ -73,7 +73,7 @@ public class UpdateEventCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_NotCallSaveChanges_WhenOrganizerDoesNotMatch()
+    public async Task Handle_WhenOrganizerDoesNotMatch_DoesNotCallSaveChanges()
     {
         var ev = CreateEvent("organizer-1");
         var mockContext = BuildMockContext([ev]);

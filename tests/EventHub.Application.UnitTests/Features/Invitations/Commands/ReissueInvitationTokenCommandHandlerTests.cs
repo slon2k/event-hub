@@ -11,7 +11,7 @@ namespace EventHub.Application.UnitTests.Features.Invitations.Commands;
 public class ReissueInvitationTokenCommandHandlerTests
 {
     [Fact]
-    public async Task Handle_Should_CallSaveChanges_WhenTokenIsReissuedSuccessfully()
+    public async Task Handle_WhenTokenIsReissuedSuccessfully_CallsSaveChanges()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var (mockContext, mockTokenService) = BuildMocks([ev]);
@@ -23,7 +23,7 @@ public class ReissueInvitationTokenCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_CallTokenServiceGenerate_WhenReissuing()
+    public async Task Handle_WhenReissuing_CallsTokenServiceGenerate()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var (mockContext, mockTokenService) = BuildMocks([ev]);
@@ -37,7 +37,7 @@ public class ReissueInvitationTokenCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowNotFoundException_WhenEventDoesNotExist()
+    public async Task Handle_WhenEventDoesNotExist_ThrowsNotFoundException()
     {
         var (mockContext, mockTokenService) = BuildMocks([]);
 
@@ -47,7 +47,7 @@ public class ReissueInvitationTokenCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowForbiddenException_WhenOrganizerDoesNotMatch()
+    public async Task Handle_WhenOrganizerDoesNotMatch_ThrowsForbiddenException()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var (mockContext, mockTokenService) = BuildMocks([ev]);
@@ -58,7 +58,7 @@ public class ReissueInvitationTokenCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowNotFoundException_WhenInvitationDoesNotExistInEvent()
+    public async Task Handle_WhenInvitationDoesNotExistInEvent_ThrowsNotFoundException()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out _);
         var (mockContext, mockTokenService) = BuildMocks([ev]);
@@ -69,7 +69,7 @@ public class ReissueInvitationTokenCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_NotCallSaveChanges_WhenEventNotFound()
+    public async Task Handle_WhenEventNotFound_DoesNotCallSaveChanges()
     {
         var (mockContext, mockTokenService) = BuildMocks([]);
 
@@ -81,7 +81,7 @@ public class ReissueInvitationTokenCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_NotCallSaveChanges_WhenOrganizerDoesNotMatch()
+    public async Task Handle_WhenOrganizerDoesNotMatch_DoesNotCallSaveChanges()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var (mockContext, mockTokenService) = BuildMocks([ev]);

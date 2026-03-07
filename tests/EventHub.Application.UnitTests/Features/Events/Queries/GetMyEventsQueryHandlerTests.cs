@@ -10,7 +10,7 @@ namespace EventHub.Application.UnitTests.Features.Events.Queries;
 public class GetMyEventsQueryHandlerTests
 {
     [Fact]
-    public async Task Handle_Should_ReturnOnlyOrganizerEvents()
+    public async Task Handle_WhenCalled_ReturnsOnlyOrganizerEvents()
     {
         var ownerEvent = CreateEvent("organizer-1", DateTimeOffset.UtcNow.AddDays(7));
         var otherEvent = CreateEvent("organizer-2", DateTimeOffset.UtcNow.AddDays(7));
@@ -24,7 +24,7 @@ public class GetMyEventsQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ReturnEmptyList_WhenOrganizerHasNoEvents()
+    public async Task Handle_WhenOrganizerHasNoEvents_ReturnsEmptyList()
     {
         var mockContext = BuildMockContext([]);
 
@@ -35,7 +35,7 @@ public class GetMyEventsQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ReturnEventsSortedByDateTimeDescending()
+    public async Task Handle_WhenCalled_ReturnsEventsSortedByDateTimeDescending()
     {
         var earlier = CreateEvent("organizer-1", DateTimeOffset.UtcNow.AddDays(3));
         var later = CreateEvent("organizer-1", DateTimeOffset.UtcNow.AddDays(10));
@@ -50,7 +50,7 @@ public class GetMyEventsQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_CountAcceptedInvitationsCorrectly()
+    public async Task Handle_WhenCalled_CountsAcceptedInvitationsCorrectly()
     {
         var ev = CreatePublishedEvent("organizer-1");
         ev.AddInvitation("accepted@example.com", "raw1", "hash1", DateTimeOffset.UtcNow.AddHours(72), Guid.NewGuid());
@@ -66,7 +66,7 @@ public class GetMyEventsQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_MapSummaryFields()
+    public async Task Handle_WhenCalled_MapsSummaryFields()
     {
         var ev = Event.Create(
             "Board Games Night",

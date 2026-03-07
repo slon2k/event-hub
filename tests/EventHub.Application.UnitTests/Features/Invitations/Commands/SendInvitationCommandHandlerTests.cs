@@ -11,7 +11,7 @@ namespace EventHub.Application.UnitTests.Features.Invitations.Commands;
 public class SendInvitationCommandHandlerTests
 {
     [Fact]
-    public async Task Handle_Should_ReturnInvitationId_WhenOrganizerMatchesAndEventIsPublished()
+    public async Task Handle_WhenOrganizerMatchesAndEventIsPublished_ReturnsInvitationId()
     {
         var ev = CreatePublishedEvent("organizer-1");
         var (mockContext, mockTokenService) = BuildMocks([ev]);
@@ -23,7 +23,7 @@ public class SendInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_CallSaveChanges_WhenInvitationIsCreated()
+    public async Task Handle_WhenInvitationIsCreated_CallsSaveChanges()
     {
         var ev = CreatePublishedEvent("organizer-1");
         var (mockContext, mockTokenService) = BuildMocks([ev]);
@@ -35,7 +35,7 @@ public class SendInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowNotFoundException_WhenEventDoesNotExist()
+    public async Task Handle_WhenEventDoesNotExist_ThrowsNotFoundException()
     {
         var (mockContext, mockTokenService) = BuildMocks([]);
 
@@ -45,7 +45,7 @@ public class SendInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowForbiddenException_WhenOrganizerDoesNotMatch()
+    public async Task Handle_WhenOrganizerDoesNotMatch_ThrowsForbiddenException()
     {
         var ev = CreatePublishedEvent("organizer-1");
         var (mockContext, mockTokenService) = BuildMocks([ev]);
@@ -56,7 +56,7 @@ public class SendInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_NotCallSaveChanges_WhenEventNotFound()
+    public async Task Handle_WhenEventNotFound_DoesNotCallSaveChanges()
     {
         var (mockContext, mockTokenService) = BuildMocks([]);
 
@@ -68,7 +68,7 @@ public class SendInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_NotCallSaveChanges_WhenOrganizerDoesNotMatch()
+    public async Task Handle_WhenOrganizerDoesNotMatch_DoesNotCallSaveChanges()
     {
         var ev = CreatePublishedEvent("organizer-1");
         var (mockContext, mockTokenService) = BuildMocks([ev]);

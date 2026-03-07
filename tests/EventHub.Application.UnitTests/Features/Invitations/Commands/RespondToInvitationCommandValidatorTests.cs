@@ -7,7 +7,7 @@ public class RespondToInvitationCommandValidatorTests
     private readonly RespondToInvitationCommandValidator _validator = new();
 
     [Fact]
-    public void Validate_Should_HaveError_WhenRawTokenIsEmpty()
+    public void Validate_WhenRawTokenIsEmpty_ReturnsValidationError()
     {
         var command = ValidCommand() with { RawToken = string.Empty };
 
@@ -18,7 +18,7 @@ public class RespondToInvitationCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_Should_Pass_ForValidCommand()
+    public void Validate_WhenCalled_Passes_ForValidCommand()
     {
         var command = ValidCommand();
 
