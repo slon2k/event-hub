@@ -49,7 +49,8 @@ A training application demonstrating production-grade patterns at small scale: a
     ├── EventHub.Api.FunctionalTests/
     ├── EventHub.Application.UnitTests/
     ├── EventHub.Domain.UnitTests/
-    └── EventHub.Infrastructure.IntegrationTests/
+    ├── EventHub.Infrastructure.IntegrationTests/
+    └── EventHub.Infrastructure.UnitTests/
 ```
 
 ## Getting Started
@@ -62,7 +63,7 @@ For API endpoint testing with VS Code request files, see the `.http` section in 
 
 ```bash
 dotnet restore
-# Start SQL Server in Docker first — see local-development.md §2
+# Start SQL Server via a Docker-compatible runtime first — see local-development.md §2
 dotnet ef database update --project src/backend/EventHub.Infrastructure --startup-project src/backend/EventHub.Api
 dotnet run --project src/backend/EventHub.Api
 ```

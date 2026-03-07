@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Updated** | 2026-02-28 |
+| **Updated** | 2026-03-07 |
 
 ---
 
@@ -11,7 +11,7 @@
 | Tool | Minimum Version | Install |
 |---|---|---|
 | .NET SDK | 10.0 | [dot.net](https://dot.net) |
-| Docker Desktop | Any recent | [docker.com](https://www.docker.com/products/docker-desktop) — required for Testcontainers and SQL Server |
+| Docker-compatible runtime | Any recent | A Docker-compatible container runtime is required for Testcontainers and the local SQL Server container. Options: [Docker Desktop](https://www.docker.com/products/docker-desktop) (requires license for large organisations), [Rancher Desktop](https://rancherdesktop.io/) (free, select **dockerd** engine during setup), [Podman Desktop](https://podman-desktop.io/) (free), or Docker Engine on Linux. Verify with `docker info`. |
 | Azure Functions Core Tools | 4.x | `npm i -g azure-functions-core-tools@4 --unsafe-perm true` |
 | Azure CLI | 2.47+ | [Install guide](https://learn.microsoft.com/cli/azure/install-azure-cli) |
 | Git | Any | — |
@@ -317,7 +317,7 @@ dotnet test tests/EventHub.Infrastructure.IntegrationTests   # requires Docker
 dotnet test tests/EventHub.Api.FunctionalTests               # requires Docker
 ```
 
-Integration and functional tests use **Testcontainers** to spin up a SQL Server container automatically — Docker Desktop must be running.
+Integration and functional tests use **Testcontainers** to spin up a SQL Server container automatically — a Docker-compatible runtime (Docker Desktop, Rancher Desktop, Podman Desktop, or Docker Engine) must be running. Verify with `docker info`.
 
 ---
 
