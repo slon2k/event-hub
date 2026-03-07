@@ -50,7 +50,8 @@ A training application demonstrating production-grade patterns at small scale: a
     ├── EventHub.Application.UnitTests/
     ├── EventHub.Domain.UnitTests/
     ├── EventHub.Infrastructure.IntegrationTests/
-    └── EventHub.Infrastructure.UnitTests/
+    ├── EventHub.Infrastructure.UnitTests/
+    └── EventHub.Notifications.UnitTests/
 ```
 
 ## Getting Started

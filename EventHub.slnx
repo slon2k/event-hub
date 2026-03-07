@@ -15,5 +15,6 @@
     <Project Path="tests/EventHub.Domain.UnitTests/EventHub.Domain.UnitTests.csproj" />
     <Project Path="tests/EventHub.Infrastructure.IntegrationTests/EventHub.Infrastructure.IntegrationTests.csproj" />
     <Project Path="tests/EventHub.Infrastructure.UnitTests/EventHub.Infrastructure.UnitTests.csproj" />
+    <Project Path="tests/EventHub.Notifications.UnitTests/EventHub.Notifications.UnitTests.csproj" />
   </Folder>
 </Solution>
