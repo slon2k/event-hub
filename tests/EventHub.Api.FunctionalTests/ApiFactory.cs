@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 
 namespace EventHub.Api.FunctionalTests;
@@ -56,6 +57,13 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         // PostConfigure runs after all Configure actions, guaranteeing these settings win.
         builder.ConfigureServices(services =>
         {
+            // Ensure tests never use appsettings LocalDB on non-Windows runners.
+            services.RemoveAll<DbContextOptions<EventHubDbContext>>();
+            services.RemoveAll<EventHubDbContext>();
+            services.AddDbContext<EventHubDbContext>(options =>
+                options.UseSqlServer(_container.GetConnectionString(), sql =>
+                    sql.EnableRetryOnFailure(maxRetryCount: 5)));
+
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
             {
                 var key = new SymmetricSecurityKey(Convert.FromBase64String(TestHmacKeyBase64));
