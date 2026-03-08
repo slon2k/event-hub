@@ -51,11 +51,11 @@ public class RespondToInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenInvitationDoesNotExist_ThrowsNotFoundException()
+    public async Task Handle_WhenInvitationDoesNotExist_ThrowsInvalidTokenException()
     {
         var (mockContext, mockTokenService) = BuildMocks([], tokenIsValid: true);
 
-        await Assert.ThrowsAsync<NotFoundException>(() =>
+        await Assert.ThrowsAsync<InvalidTokenException>(() =>
             new RespondToInvitationCommandHandler(mockContext.Object, mockTokenService.Object)
                 .Handle(new RespondToInvitationCommand(Guid.NewGuid(), "raw-token", InvitationResponse.Accept), CancellationToken.None));
     }
@@ -76,12 +76,12 @@ public class RespondToInvitationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenTokenIsInvalidOrExpired_ThrowsDomainException()
+    public async Task Handle_WhenTokenIsInvalidOrExpired_ThrowsInvalidTokenException()
     {
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var (mockContext, mockTokenService) = BuildMocks([ev], tokenIsValid: false);
 
-        await Assert.ThrowsAsync<DomainException>(() =>
+        await Assert.ThrowsAsync<InvalidTokenException>(() =>
             new RespondToInvitationCommandHandler(mockContext.Object, mockTokenService.Object)
                 .Handle(new RespondToInvitationCommand(invitationId, "wrong-token", InvitationResponse.Accept), CancellationToken.None));
     }
@@ -92,7 +92,7 @@ public class RespondToInvitationCommandHandlerTests
         var ev = CreatePublishedEventWithInvitation("organizer-1", out var invitationId);
         var (mockContext, mockTokenService) = BuildMocks([ev], tokenIsValid: false);
 
-        await Assert.ThrowsAsync<DomainException>(() =>
+        await Assert.ThrowsAsync<InvalidTokenException>(() =>
             new RespondToInvitationCommandHandler(mockContext.Object, mockTokenService.Object)
                 .Handle(new RespondToInvitationCommand(invitationId, "wrong-token", InvitationResponse.Accept), CancellationToken.None));
 
