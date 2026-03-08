@@ -22,6 +22,11 @@ internal sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> log
                 ex.Message,
                 null),
 
+            InvalidTokenException ex => (
+                StatusCodes.Status400BadRequest,
+                ex.Message,
+                null),
+
             ForbiddenException ex => (
                 StatusCodes.Status403Forbidden,
                 ex.Message,

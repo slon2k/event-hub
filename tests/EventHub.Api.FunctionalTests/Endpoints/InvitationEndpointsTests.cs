@@ -1,4 +1,6 @@
 using System.Text.Json;
+using EventHub.Infrastructure.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EventHub.Api.FunctionalTests.Endpoints;
 
@@ -107,13 +109,128 @@ public class InvitationEndpointsTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task RespondToInvitation_UnknownToken_Returns404()
+    public async Task RespondToInvitation_UnknownToken_Returns400()
     {
         var response = await factory.CreateDefaultClient().PostAsJsonAsync(
             "/api/invitations/respond",
             new { InvitationId = Guid.NewGuid(), RawToken = "non-existent-token", Response = "Accept" });
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RespondToInvitation_ValidToken_Accept_Returns204()
+    {
+        var client = Client("org-rsvp-accept-001");
+        var eventId = await CreatePublishedEvent(client, "RSVP Accept Event");
+        var invitationId = await SendInvitation(client, eventId, "rsvp-accept@example.com");
+        var rawToken = await GetRsvpTokenFromOutboxAsync(invitationId);
+
+        var response = await factory.CreateDefaultClient().PostAsJsonAsync(
+            "/api/invitations/respond",
+            new { InvitationId = invitationId, RawToken = rawToken, Response = "Accept" });
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RespondToInvitation_ValidToken_Decline_Returns204()
+    {
+        var client = Client("org-rsvp-decline-001");
+        var eventId = await CreatePublishedEvent(client, "RSVP Decline Event");
+        var invitationId = await SendInvitation(client, eventId, "rsvp-decline@example.com");
+        var rawToken = await GetRsvpTokenFromOutboxAsync(invitationId);
+
+        var response = await factory.CreateDefaultClient().PostAsJsonAsync(
+            "/api/invitations/respond",
+            new { InvitationId = invitationId, RawToken = rawToken, Response = "Decline" });
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RespondToInvitation_AlreadyUsedToken_Returns409()
+    {
+        var client = Client("org-rsvp-used-001");
+        var eventId = await CreatePublishedEvent(client, "RSVP Used Token Event");
+        var invitationId = await SendInvitation(client, eventId, "rsvp-used@example.com");
+        var rawToken = await GetRsvpTokenFromOutboxAsync(invitationId);
+
+        await factory.CreateDefaultClient().PostAsJsonAsync(
+            "/api/invitations/respond",
+            new { InvitationId = invitationId, RawToken = rawToken, Response = "Accept" });
+
+        var response = await factory.CreateDefaultClient().PostAsJsonAsync(
+            "/api/invitations/respond",
+            new { InvitationId = invitationId, RawToken = rawToken, Response = "Accept" });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RespondToInvitation_ExpiredToken_Returns400()
+    {
+        var client = Client("org-rsvp-expired-001");
+        const string email = "rsvp-expired@example.com";
+        var eventId = await CreatePublishedEvent(client, "RSVP Expired Token Event");
+        var invitationId = await SendInvitation(client, eventId, email);
+
+        var tokenService = new RsvpTokenService(ApiFactory.TestHmacKeyBase64);
+        var (expiredToken, _) = tokenService.Generate(invitationId, email, DateTimeOffset.UtcNow.AddHours(-1));
+
+        var response = await factory.CreateDefaultClient().PostAsJsonAsync(
+            "/api/invitations/respond",
+            new { InvitationId = invitationId, RawToken = expiredToken, Response = "Accept" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    // ── POST /api/events/{eventId}/invitations/{invitationId}/reissue ─────────
+
+    [Fact]
+    public async Task ReissueInvitationToken_PendingInvitation_Returns204()
+    {
+        var client = Client("org-reissue-001");
+        var eventId = await CreatePublishedEvent(client, "Reissue Event 1");
+        var invitationId = await SendInvitation(client, eventId, "reissue-pending@example.com");
+
+        var response = await client.PostAsync(
+            $"/api/events/{eventId}/invitations/{invitationId}/reissue", null);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReissueInvitationToken_DifferentOrganizer_Returns403()
+    {
+        var owner = Client("org-reissue-002");
+        var other = Client("org-reissue-003");
+        var eventId = await CreatePublishedEvent(owner, "Reissue Event 2");
+        var invitationId = await SendInvitation(owner, eventId, "reissue-forbidden@example.com");
+
+        var response = await other.PostAsync(
+            $"/api/events/{eventId}/invitations/{invitationId}/reissue", null);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReissueInvitationToken_AcceptedInvitation_Returns409()
+    {
+        var client = Client("org-reissue-004");
+        const string email = "reissue-accepted@example.com";
+        var eventId = await CreatePublishedEvent(client, "Reissue Event 3");
+        var invitationId = await SendInvitation(client, eventId, email);
+        var rawToken = await GetRsvpTokenFromOutboxAsync(invitationId);
+
+        await factory.CreateDefaultClient().PostAsJsonAsync(
+            "/api/invitations/respond",
+            new { InvitationId = invitationId, RawToken = rawToken, Response = "Accept" });
+
+        var response = await client.PostAsync(
+            $"/api/events/{eventId}/invitations/{invitationId}/reissue", null);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 
     // ── Health check ──────────────────────────────────────────────────────────
@@ -127,6 +244,18 @@ public class InvitationEndpointsTests(ApiFactory factory)
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private async Task<string> GetRsvpTokenFromOutboxAsync(Guid invitationId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<EventHubDbContext>();
+        var outbox = await db.OutboxMessages
+            .Where(m => m.Payload.Contains(invitationId.ToString()))
+            .OrderByDescending(m => m.CreatedAt)
+            .FirstAsync();
+        using var doc = JsonDocument.Parse(outbox.Payload);
+        return doc.RootElement.GetProperty("RsvpToken").GetString()!;
+    }
 
     private static async Task<Guid> CreatePublishedEvent(HttpClient client, string title)
     {
