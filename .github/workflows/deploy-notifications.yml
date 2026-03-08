@@ -7,6 +7,16 @@ on:
       - master
     paths:
       - 'src/notifications/**'
+      - 'tests/EventHub.Notifications.UnitTests/**'
+      - 'tests/EventHub.Notifications.IntegrationTests/**'
+  pull_request:
+    branches:
+      - development
+      - master
+    paths:
+      - 'src/notifications/**'
+      - 'tests/EventHub.Notifications.UnitTests/**'
+      - 'tests/EventHub.Notifications.IntegrationTests/**'
   workflow_dispatch:
     inputs:
       environment:
