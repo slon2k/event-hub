@@ -13,7 +13,7 @@ The codebase is technically stable for transition planning: all tests pass local
 Before moving to Stage 2, the main work is alignment and completeness:
 
 - Align requirements with implemented API contracts.
-- Decide whether Admin capabilities belong to Stage 1 or Stage 2.
+- Complete basic Admin API scope as Stage 1 closure.
 - Close invitation functional test gaps.
 - Improve CI trigger coverage for notifications test-only changes.
 - Clean markdown lint issues if docs lint is enforced in your quality gate.
@@ -30,7 +30,7 @@ Before moving to Stage 2, the main work is alignment and completeness:
 
 ## Priority Recommendations
 
-### P1 - Decide and document Admin scope boundary
+### P1 - Complete and document Stage 1 Admin baseline
 
 Requirements currently include Admin use cases:
 
@@ -42,11 +42,9 @@ No corresponding Admin endpoints/handlers are implemented yet.
 
 Recommendation:
 
-- Choose one of two paths immediately:
-  - Path A: Reclassify these items as Stage 2 and update requirements.
-  - Path B: Implement minimum Admin APIs before Stage 2.
-
-Suggested decision deadline: before next sprint planning.
+- Execute minimum Admin APIs before Stage 2 implementation starts.
+- Keep Stage 2 focused on post-closure technical features.
+- Record idempotency and self-modification behavior in requirements and operations docs.
 
 ## P1 - Align API contract with requirements
 
@@ -102,7 +100,7 @@ Recommendation:
 
 ## Suggested Execution Order
 
-1. Scope decision on Admin features (Stage 1 defer vs implement now).
+1. Complete Stage 1 Admin baseline and document boundary.
 2. Requirements-contract alignment update.
 3. Invitation functional test completion.
 4. Workflow trigger path expansion for notifications tests.
@@ -112,7 +110,7 @@ Recommendation:
 
 Use this list before opening Stage 2 workstream:
 
-- [ ] Admin scope decision recorded in requirements/ADR.
+- [ ] Stage 1 Admin baseline completed and documented.
 - [ ] Requirements and API contracts are consistent.
 - [ ] Invitation API functional tests cover reissue + RSVP happy/conflict paths.
 - [ ] Notifications workflow triggers include notifications test project changes.
@@ -122,3 +120,7 @@ Use this list before opening Stage 2 workstream:
 ## Notes
 
 This recommendation is intentionally conservative: it focuses on reducing ambiguity and regression risk before introducing Stage 2 complexity.
+
+Related planning artifact:
+
+- `docs/operations/stage2-scope-and-demo-plan.md`

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Proposed |
+| Status | Approved for implementation |
 | Date | 2026-03-07 |
 | Scope | Remaining required Admin capabilities for Stage 1 |
 
@@ -19,16 +19,16 @@ Close the remaining Stage 1 requirements with minimal disruption to existing Eve
 
 Admin scope is part of current requirements completion, not a Stage 2 feature.
 
-- **Stage 1 must-have**: Admin endpoints and behaviors listed above.
-- **Stage 1 hardening (optional)**: filtering, paging, search tuning, and advanced idempotency semantics.
+- **Stage 1 must-have**: Admin endpoints and behaviors listed above, including basic pagination for `GET /api/admin/users` (required per §5.1 of functional requirements).
+- **Stage 1 hardening (optional)**: filtering, search tuning, paging for events endpoint, and advanced idempotency semantics.
 
 ## 3. Functional Scope
 
 ### 3.1 List Users (Admin)
 
-- Admin can retrieve a list of Entra users.
+- Admin can retrieve a paginated list of Entra users (required per functional requirements §5.1).
 - Response includes user identity data and whether Organizer role is assigned.
-- Paging/filtering can be added now or as Stage 1 hardening.
+- Pagination is required (`page`, `pageSize`); search/filtering is optional hardening.
 
 ### 3.2 Assign Organizer Role (Admin)
 
@@ -49,15 +49,15 @@ Admin scope is part of current requirements completion, not a Stage 2 feature.
 
 All endpoints require `AdminPolicy`.
 
-- `GET /api/admin/users`
+- `GET /api/admin/users?page=1&pageSize=50` — pagination required; returns `PagedResult<AdminUserDto>`
 - `PUT /api/admin/users/{userId}/roles/organizer`
 - `DELETE /api/admin/users/{userId}/roles/organizer`
 - `GET /api/admin/events`
 
 Optional hardening (non-blocking for Stage 1 closure):
 
-- `GET /api/admin/users?page=1&pageSize=50&search=`
-- `GET /api/admin/events?page=1&pageSize=50&status=&organizerId=`
+- `GET /api/admin/users?page=1&pageSize=50&search=` — search filter
+- `GET /api/admin/events?page=1&pageSize=50&status=&organizerId=` — pagination + filtering for events
 
 ### 4.1 Suggested Response Models
 
@@ -138,6 +138,7 @@ Add `AdminEndpoints.cs` under `src/backend/EventHub.Api/Endpoints`.
 - Map `/api/admin/*` routes.
 - Require `AdminPolicy` at group level.
 - Enforce "admin cannot self-modify roles" before dispatching role commands.
+- Extract `actingAdminUserId` from JWT claims at the endpoint layer (`HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)`) and pass it into the command — do not rely on the handler to resolve the caller identity.
 
 ## 6. Microsoft Entra / Graph Prerequisites
 
@@ -158,18 +159,20 @@ Configuration needed:
 
 ### 7.1 Role operation idempotency
 
-Choose one strategy and keep consistent:
+Selected strategy for Stage 1 closure: idempotent.
 
 - Idempotent:
   - Assign existing role => `204`
   - Remove missing role => `204`
-- Strict:
-  - Assign existing role => `409`
-  - Remove missing role => `409`
 
-Recommendation: idempotent for operational simplicity.
+Alternative (not selected for Stage 1): strict.
 
-### 7.2 Paging defaults and limits (optional hardening)
+- Assign existing role => `409`
+- Remove missing role => `409`
+
+### 7.2 Paging defaults and limits
+
+Applies to `GET /api/admin/users` (required) and optionally to `GET /api/admin/events` (hardening).
 
 - Default `page=1`, `pageSize=50`.
 - Max `pageSize=200`.
@@ -190,6 +193,7 @@ Recommendation: idempotent for operational simplicity.
 
 - Add `IIdentityAdminService` + contracts.
 - Add command/query handlers for users and roles.
+- `GetUsersQuery` accepts `page` and `pageSize` parameters; handler returns `PagedResult<AdminUserDto>`.
 
 ### Step 3: Graph integration
 
@@ -200,6 +204,7 @@ Recommendation: idempotent for operational simplicity.
 
 - Add `GET /api/admin/users`.
 - Add assign/remove organizer endpoints.
+- Register `AdminEndpoints` in `Program.cs`: call `app.MapAdminEndpoints()` alongside `MapEventEndpoints()` and `MapInvitationEndpoints()`.
 
 ### Step 5: Hardening (optional but recommended)
 
@@ -237,23 +242,58 @@ Recommendation: idempotent for operational simplicity.
 - Keep live-tenant Graph tests out of PR gating unless sandbox is reliable.
 - Add secrets/config checks for Graph permission prerequisites in deployment runbook.
 
-## 11. Acceptance Criteria (Stage 1 Closure)
+Deferred improvement (post Stage 1 closure):
+
+- Introduce test-environment API E2E automation in a dedicated workflow.
+- Keep PR gating fast by excluding E2E from default pipeline runs (`Category!=E2E`).
+- Run E2E only after deployment to `test` (or manual dispatch), with environment-based configuration and secrets.
+
+## 11. Stage 1 Stabilization Release Gate
+
+After Stage 1 Admin acceptance criteria are met, treat Stage 1 as a stabilization milestone:
+
+- Merge `dev` into `master`.
+- Deploy `master` to the `test` environment.
+- Run post-deploy verification in `test` before starting Stage 2 implementation.
+
+Recommended post-deploy verification in `test`:
+
+- Smoke test core API endpoints (health, events, invitations).
+- Verify Admin API baseline end-to-end:
+  - list users
+  - assign/remove Organizer role
+  - list all events
+- Verify role-security behavior:
+  - non-admin blocked
+  - self-role modification blocked
+- Verify idempotent role behavior (`204` on no-op assign/remove).
+- Verify notifications pipeline healthy for invitation and RSVP events.
+
+Release decision for Stage 2 kickoff:
+
+- Proceed only if `test` validation is green and no blocker defects remain.
+- If blockers are found, fix on `dev`, re-run CI, and redeploy to `test`.
+
+## 12. Acceptance Criteria (Stage 1 Closure)
 
 Stage 1 Admin scope is complete when:
 
 - [ ] Admin events endpoint returns cross-organizer event list.
-- [ ] Admin users endpoint returns users + role state.
+- [ ] Admin users endpoint returns paginated users + role state (`PagedResult<AdminUserDto>`).
 - [ ] Organizer role assign/remove endpoints are implemented and policy-protected.
 - [ ] Self role modification is blocked.
 - [ ] Chosen idempotency behavior is implemented and documented.
 - [ ] Unit and functional tests are green in CI.
 - [ ] Requirements and operations docs are updated to match behavior.
+- [ ] `dev` is merged to `master` and deployed to `test` environment.
+- [ ] Post-deploy validation in `test` passes with no blocker defects.
 
 Optional hardening completion:
 
 - [ ] Paging/filtering/search implemented for admin list endpoints.
+- [ ] Dedicated `test`-environment E2E workflow added (non-blocking for Stage 1 closure).
 
-## 12. Out of Scope for this Closure
+## 13. Out of Scope for this Closure
 
 - Full user lifecycle management beyond Organizer role toggle.
 - Fine-grained RBAC beyond Admin/Organizer role assignment.
