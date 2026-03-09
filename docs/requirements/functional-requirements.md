@@ -2,9 +2,9 @@
 
 | | |
 | --- | --- |
-| **Status** | Draft |
-| **Date** | 2026-02-23 |
-| **Version** | 0.2 |
+| **Status** | Active |
+| **Date** | 2026-03-09 |
+| **Version** | 0.3 |
 
 ---
 
@@ -185,6 +185,7 @@
 
 | Date | Change |
 | --- | --- |
+| 2026-03-09 | Promoted status to Active, bumped to v0.3; added issues #30 (status filter) and #31 (RSVP summary counts) to track §3.5 gaps |
 | 2026-03-08 | Split RSVP token errors: invalid/expired/not-found → `400 Bad Request`; already-used → `409 Conflict` |
 | 2026-03-08 | Added `204 No Content` as RSVP success response |
 | 2026-03-08 | Renamed §4.4 from "Re-send Invitation" to "Reissue Invitation Token"; added endpoint path, response codes, and constraint that only Pending invitations can be reissued |

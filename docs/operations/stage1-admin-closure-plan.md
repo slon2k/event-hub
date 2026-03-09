@@ -242,11 +242,12 @@ Applies to `GET /api/admin/users` (required) and optionally to `GET /api/admin/e
 - Keep live-tenant Graph tests out of PR gating unless sandbox is reliable.
 - Add secrets/config checks for Graph permission prerequisites in deployment runbook.
 
-Deferred improvement (post Stage 1 closure):
+Tracked improvement — non-blocking for Stage 1 closure, required before Stage 2 kickoff:
 
-- Introduce test-environment API E2E automation in a dedicated workflow.
-- Keep PR gating fast by excluding E2E from default pipeline runs (`Category!=E2E`).
+- Introduce test-environment API E2E automation in a dedicated workflow (`e2e-test.yml`).
+- Keep PR gating fast by excluding E2E from default pipeline runs (`--filter "Category!=E2E"`).
 - Run E2E only after deployment to `test` (or manual dispatch), with environment-based configuration and secrets.
+- Required GitHub Actions environment secrets: `EVENTHUB_TEST_HOST`, `EVENTHUB_TEST_ADMIN_TOKEN`, `EVENTHUB_TEST_ORGANIZER_TOKEN`.
 
 ## 11. Stage 1 Stabilization Release Gate
 
@@ -287,11 +288,11 @@ Stage 1 Admin scope is complete when:
 - [ ] Requirements and operations docs are updated to match behavior.
 - [ ] `dev` is merged to `master` and deployed to `test` environment.
 - [ ] Post-deploy validation in `test` passes with no blocker defects.
+- [ ] Dedicated `test`-environment E2E workflow (`e2e-test.yml`) is in place and passes.
 
 Optional hardening completion:
 
 - [ ] Paging/filtering/search implemented for admin list endpoints.
-- [ ] Dedicated `test`-environment E2E workflow added (non-blocking for Stage 1 closure).
 
 ## 13. Out of Scope for this Closure
 
