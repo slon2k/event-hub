@@ -4,7 +4,7 @@ This directory contains all infrastructure-as-code (IaC) for the EventHub platfo
 
 ## Structure
 
-```
+```text
 infra/
 ├── bicep/
 │   ├── main.bicep              # Root template — orchestrates all modules
@@ -26,7 +26,7 @@ infra/
 ## Resources Deployed
 
 | Resource | Naming convention | Notes |
-|---|---|---|
+| --- | --- | --- |
 | App Service Plan | `{baseName}-{env}-plan` | Linux, SKU varies per environment |
 | App Service (API) | `{baseName}-{env}-api` | .NET 10, zip deploy, system-assigned managed identity |
 | SQL Server | `{sqlServerName}` | Supplied as param; created by IaC |
@@ -36,7 +36,7 @@ infra/
 ## Environments
 
 | Environment | App Service SKU | SQL SKU | Always On | Purge Protection | Purpose |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | dev | F1 (Free) | Free (Serverless Gen5 2 vCore) | No | No | Active development |
 | test | F1 (Free) | Free (Serverless Gen5 2 vCore) | No | No | Integration testing |
 | prod | B1 (Basic) | Standard S0 | Yes | Yes | Production workload |
@@ -73,7 +73,7 @@ az deployment group what-if `
 Infrastructure is deployed automatically via GitHub Actions ([.github/workflows/deploy-infra.yml](../../.github/workflows/deploy-infra.yml)):
 
 | Trigger | Target |
-|---|---|
+| --- | --- |
 | Push to `development` | dev |
 | Push to `master` | test |
 | Manual dispatch | prod |
@@ -82,7 +82,7 @@ Infrastructure is deployed automatically via GitHub Actions ([.github/workflows/
 ## Parameters Reference
 
 | Parameter | Type | Default | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `baseName` | string | — | Base workload name (e.g. `eventhub`) |
 | `environment` | string | — | Environment moniker: `dev`, `test`, or `prod` |
 | `location` | string | resource group location | Azure region |
@@ -107,7 +107,7 @@ Infrastructure is deployed automatically via GitHub Actions ([.github/workflows/
 All resources receive the following base tags automatically:
 
 | Tag | Value | Source |
-|---|---|---|
+| --- | --- | --- |
 | `environment` | `dev` / `test` / `prod` | Bicep module |
 | `workload` | `webapi` | Bicep module |
 

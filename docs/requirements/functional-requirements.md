@@ -1,7 +1,7 @@
 # Functional Requirements
 
 | | |
-|---|---|
+| --- | --- |
 | **Status** | Draft |
 | **Date** | 2026-02-23 |
 | **Version** | 0.2 |
@@ -11,7 +11,7 @@
 ## 1. Actors and Roles
 
 | Role | Account Required | Description |
-|---|---|---|
+| --- | --- | --- |
 | **Admin** | Yes — Entra ID | Platform administrator. Manages user role assignments and has read-only visibility into all events. |
 | **Organizer** | Yes — Entra ID | Authenticated user who creates and manages events and sends invitations to participants. |
 | **Participant** | **No — guest** | External person invited by email. RSVPs via a signed magic link. No account or registration required. |
@@ -24,12 +24,14 @@
 ## 2. Authentication and Authorization
 
 ### Admin and Organizer — Azure Entra ID (JWT Bearer)
+
 - Admin and Organizer endpoints require a valid **Entra ID JWT Bearer token**.
 - Roles (`Admin`, `Organizer`) are defined as **Entra ID App Roles** and conveyed in the token.
 - Unauthenticated requests to protected endpoints return `401 Unauthorized`.
 - Requests by authenticated users to endpoints outside their role return `403 Forbidden`.
 
 ### Participant — Magic Link Token
+
 - Participants **do not require an account**.
 - When an invitation is sent, a short-lived **HMAC-SHA256 signed token** is generated and embedded in the invitation email as a URL.
 - The RSVP endpoint (`POST /api/invitations/respond`) is **public** (no Bearer token) and validates the magic link token.
@@ -165,7 +167,7 @@
 ## 7. Out of Scope (v1)
 
 | Feature | Notes |
-|---|---|
+| --- | --- |
 | Attendance tracking | Tracking who physically attended vs. who RSVP'd |
 | Waitlists | Auto-promoting participants if an accepted RSVP is withdrawn |
 | Recurring events | Every event is a one-off |
@@ -182,7 +184,7 @@
 ## 8. Change Log
 
 | Date | Change |
-|---|---|
+| --- | --- |
 | 2026-03-08 | Split RSVP token errors: invalid/expired/not-found → `400 Bad Request`; already-used → `409 Conflict` |
 | 2026-03-08 | Added `204 No Content` as RSVP success response |
 | 2026-03-08 | Renamed §4.4 from "Re-send Invitation" to "Reissue Invitation Token"; added endpoint path, response codes, and constraint that only Pending invitations can be reissued |

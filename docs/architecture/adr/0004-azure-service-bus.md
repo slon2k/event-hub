@@ -1,7 +1,7 @@
 # ADR 0004 — Azure Service Bus over Azure Storage Queues
 
 | | |
-|---|---|
+| --- | --- |
 | **Status** | Accepted |
 | **Date** | 2026-02-23 |
 | **Deciders** | Engineering team |
@@ -19,7 +19,7 @@ The `notifications` topic has a subscription `email` consumed by `SendEmailFunct
 ## Comparison
 
 | Feature | Azure Storage Queues | Azure Service Bus |
-|---|---|---|
+| --- | --- | --- |
 | Max message size | 64 KB | 256 KB (Standard), 100 MB (Premium) |
 | Message ordering | No guarantee | Sessions support (FIFO) |
 | Dead-letter queue | Not built-in (manual) | **Built-in per subscription** |
@@ -34,7 +34,7 @@ The `notifications` topic has a subscription `email` consumed by `SendEmailFunct
 ## Alternatives Considered
 
 | Option | Reason not chosen |
-|---|---|
+| --- | --- |
 | Azure Storage Queues | No Topics (cannot fan-out to multiple subscribers without duplicating publish logic); no built-in DLQ |
 | Azure Event Hubs | Designed for high-throughput streaming / telemetry, not transactional messaging; complex consumer model for this use case |
 | Azure Event Grid | Push-based, not pull-based; requires public HTTPS endpoints for subscribers; poor fit for Azure Functions outbox polling |
@@ -42,6 +42,7 @@ The `notifications` topic has a subscription `email` consumed by `SendEmailFunct
 ## Consequences
 
 ### Positive
+
 - Topics + Subscriptions provide a natural pub/sub model: publish once, deliver to N subscribers.
 - Built-in dead-letter queue enables operational observability for failed deliveries without custom infrastructure.
 - Configurable `MaxDeliveryCount` per subscription controls retry behaviour before dead-lettering.
@@ -49,6 +50,7 @@ The `notifications` topic has a subscription `email` consumed by `SendEmailFunct
 - Adding a second notification channel in v2 requires zero changes to the publisher.
 
 ### Negative / Trade-offs
+
 - Azure Service Bus Standard tier has a cost (approximately $0.05 per million operations); negligible at training scale.
 - Slightly more complex local development setup than Storage Queues (no full local emulator; use connection string to a shared dev namespace or the `ServiceBusClient` with a local emulator in Docker).
 - Requires provisioning a Service Bus namespace in Bicep (added to `infra/bicep/modules/`).

@@ -1,7 +1,7 @@
 # Local Development Guide
 
 | | |
-|---|---|
+| --- | --- |
 | **Updated** | 2026-03-07 |
 
 ---
@@ -9,7 +9,7 @@
 ## Prerequisites
 
 | Tool | Minimum Version | Install |
-|---|---|---|
+| --- | --- | --- |
 | .NET SDK | 10.0 | [dot.net](https://dot.net) |
 | Docker-compatible runtime | Any recent | A Docker-compatible container runtime is required for Testcontainers and the local SQL Server container. Options: [Docker Desktop](https://www.docker.com/products/docker-desktop) (requires license for large organisations), [Rancher Desktop](https://rancherdesktop.io/) (free, select **dockerd** engine during setup), [Podman Desktop](https://podman-desktop.io/) (free), or Docker Engine on Linux. Verify with `docker info`. |
 | Azure Functions Core Tools | 4.x | `npm i -g azure-functions-core-tools@4 --unsafe-perm true` |
@@ -19,7 +19,7 @@
 Optional but recommended:
 
 | Tool | Purpose |
-|---|---|
+| --- | --- |
 | Service Bus Explorer | Inspect Service Bus messages and dead-letter queue |
 | Azure Storage Explorer | Browse storage accounts / Azurite |
 | EF Core CLI | `dotnet tool install --global dotnet-ef` |
@@ -56,7 +56,7 @@ dotnet ef database update \
 
 The connection string in `appsettings.Development.json` defaults to:
 
-```
+```text
 Server=localhost,1433;Database=EventHub;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True
 ```
 
@@ -87,7 +87,7 @@ This mode does not require Azure app registration and is recommended while devel
 dotnet user-jwts create --project src/backend/EventHub.Api --role Organizer --claim "oid=dev-user-1" --output token
 ```
 
-3. Use the token as a Bearer token for protected endpoints:
+1. Use the token as a Bearer token for protected endpoints:
 
 ```bash
 curl -H "Authorization: Bearer <PASTE_TOKEN_HERE>" http://localhost:5165/api/events
@@ -189,7 +189,7 @@ Comment out the `ProcessOutboxFunction` timer trigger and test the email functio
 For local development, use **one of the following**:
 
 | Approach | How |
-|---|---|
+| --- | --- |
 | Real ACS dev resource | Use the connection string from the dev ACS resource in Key Vault |
 | Stub (Table Storage) | Set `AcsEmail__UseStub=true` in `local.settings.json` — writes emails to the `EmailOutbox` table in Azurite. Inspect via Azure Storage Explorer or the VS Code Azure extension. In the dev Azure environment the same table appears in the function app's storage account. |
 
@@ -256,7 +256,7 @@ Get a token via Postman (recommended) or by signing in with a dev user account t
 **Postman OAuth2 setup** (collection → Authorization tab):
 
 | Field | Value |
-|---|---|
+| --- | --- |
 | Type | OAuth 2.0 |
 | Grant Type | Authorization Code (with PKCE) |
 | Auth URL | `https://login.microsoftonline.com/8dd52aee-fd49-4e5c-ace3-0a0e907b0529/oauth2/v2.0/authorize` |
@@ -273,7 +273,7 @@ Click **Get New Access Token**, sign in as a dev user, then paste the token into
 **Dev test users** (app roles assigned in Entra ID → Enterprise applications → EventHub API → Users and groups):
 
 | User | Role | UPN |
-|---|---|---|
+| --- | --- | --- |
 | EventHub Organizer Dev | Organizer | `eh-organizer-dev@globaltradedemo.onmicrosoft.com` |
 
 To test with multiple roles, sign in with the corresponding account in Postman's token dialog (use a private browser window to switch accounts).
@@ -336,7 +336,7 @@ dotnet run --project src/backend/EventHub.Api -- --seed
 ## 10. Common Issues
 
 | Problem | Solution |
-|---|---|
+| --- | --- |
 | `Cannot open server requested by the login` | SQL Server container is not running — check `docker ps` |
 | `401 Unauthorized` on all requests | Check `Authentication:Mode` in `appsettings.Development.json`; for DevJwt verify token hasn't expired (`dotnet user-jwts` tokens last 1 hour by default) |
 | `401` against dev Azure environment | Token expired — get a fresh token via Postman OAuth2 flow |

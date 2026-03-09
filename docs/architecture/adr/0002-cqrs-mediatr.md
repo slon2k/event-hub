@@ -1,7 +1,7 @@
 # ADR 0002 — CQRS with MediatR
 
 | | |
-|---|---|
+| --- | --- |
 | **Status** | Accepted |
 | **Date** | 2026-02-23 |
 | **Deciders** | Engineering team |
@@ -27,7 +27,7 @@ We apply **Command Query Responsibility Segregation (CQRS)** at the application 
 ## Alternatives Considered
 
 | Option | Reason not chosen |
-|---|---|
+| --- | --- |
 | Fat service layer (`IEventService`) | Single class grows unbounded; hard to test in isolation |
 | Controller-based logic | Violates single responsibility; no reuse across transports |
 | Full CQRS with separate read DB | Overkill for v1 scale; read/write from same SQL DB is acceptable at this size |
@@ -36,12 +36,14 @@ We apply **Command Query Responsibility Segregation (CQRS)** at the application 
 ## Consequences
 
 ### Positive
+
 - Each handler has a single responsibility and is trivially unit-testable in isolation.
 - New features are added by adding new handlers — existing code is not modified (Open/Closed Principle).
 - Pipeline behaviours provide a single place for cross-cutting logic without decorator boilerplate.
 - Commands and Queries act as an explicit, self-documenting API surface for the application layer.
 
 ### Negative / Trade-offs
+
 - Slight indirection — a developer must navigate from controller → MediatR `Send()` → handler rather than a direct call.
 - More files per feature (command, query, handler, validator, DTO) — mitigated by consistent folder structure.
 - `MediatR` introduces a NuGet dependency; however it is stable, widely used, and unlikely to be a migration risk.

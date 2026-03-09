@@ -1,7 +1,7 @@
 # ADR 0003 — Outbox Pattern for Reliable Messaging
 
 | | |
-|---|---|
+| --- | --- |
 | **Status** | Accepted |
 | **Date** | 2026-02-23 |
 | **Deciders** | Engineering team |
@@ -9,6 +9,7 @@
 ## Context
 
 When an invitation is created, two things must happen:
+
 1. The `Invitation` row is saved to the database.
 2. A notification message is published to Azure Service Bus so that an email can be sent.
 
@@ -31,7 +32,7 @@ We implement the **Transactional Outbox Pattern with a wake-up queue**:
 
 The database remains the single source of truth. The wake-up ping is best-effort; if it is lost, the fallback timer guarantees eventual processing.
 
-```
+```text
 BEGIN TRANSACTION
   INSERT INTO Invitations (...)
   INSERT INTO OutboxMessages (Type='InvitationSent', Payload='{...}', PublishedAt=NULL)
@@ -49,7 +50,7 @@ SELECT * FROM OutboxMessages WHERE PublishedAt IS NULL
 ## Alternatives Considered
 
 | Option | Reason not chosen |
-|---|---|
+| --- | --- |
 | Publish directly in command handler | Dual-write problem — no atomicity guarantee across SQL and Service Bus |
 | Sagas / distributed transactions | Extreme complexity for the problem size; no supported infrastructure path |
 | Change Data Capture (CDC) | Requires SQL Server CDC or Debezium; unnecessary operational overhead for this scale |
@@ -58,12 +59,14 @@ SELECT * FROM OutboxMessages WHERE PublishedAt IS NULL
 ## Consequences
 
 ### Positive
+
 - **Atomicity**: domain change and message intent are committed together — no lost messages, no phantom messages.
 - **Resilience**: if Service Bus is temporarily unavailable, the outbox acts as a buffer; the Timer retries on the next poll.
 - **Simplicity**: the mechanism is plain SQL — no additional infrastructure components.
 - **Observability**: unpublished or failed outbox rows are immediately visible in the database.
 
 ### Negative / Trade-offs
+
 - **Eventual consistency**: email delivery is near-instantaneous in the happy path (ping → on-demand trigger) but can be delayed up to 2 hours if the ping is lost and the fallback timer fires.
 - **At-least-once delivery**: if `ProcessOutboxOnDemand` crashes after publishing but before marking the row, the message will be published again on the next run (ping or fallback timer). Consumers (`SendEmailFunction`) must tolerate duplicate messages. Service Bus duplicate detection on the `notifications` topic mitigates this via `MessageId = outbox.Id`.
 - **Minimal polling overhead**: the fallback timer query runs every 2 hours and only touches the DB once if there is nothing to process. Constant polling is eliminated.

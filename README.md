@@ -5,7 +5,7 @@ A training application demonstrating production-grade patterns at small scale: a
 ## What It Demonstrates
 
 | Pattern / Technology | Where |
-|---|---|
+| --- | --- |
 | Clean Architecture (Domain / Application / Infrastructure / API) | `src/backend/` |
 | CQRS with MediatR | `EventHub.Application` |
 | Rich Domain Model with Domain Events | `EventHub.Domain` |
@@ -19,7 +19,7 @@ A training application demonstrating production-grade patterns at small scale: a
 
 ## Repository Structure
 
-```
+```text
 ├── .github/
 │   └── workflows/
 │       ├── deploy-api.yml          # Build, test and deploy the API
@@ -76,13 +76,13 @@ dotnet run --project src/backend/EventHub.Api
 For local development, the API supports `Authentication:Mode = DevJwt` in `appsettings.Development.json`.
 This lets you test protected endpoints without Azure Entra ID.
 
-1) Generate an organizer token:
+1. Generate an organizer token:
 
 ```bash
 dotnet user-jwts create --project src/backend/EventHub.Api --role Organizer --claim "oid=dev-user-1" --output token
 ```
 
-2) Call a protected endpoint with that token:
+1. Call a protected endpoint with that token:
 
 ```bash
 curl -H "Authorization: Bearer <PASTE_TOKEN_HERE>" http://localhost:5165/api/events
@@ -111,7 +111,7 @@ See [infra/README.md](infra/README.md) or the [deployment runbook](docs/operatio
 ## CI/CD
 
 | Workflow | Trigger | Target |
-|---|---|---|
+| --- | --- | --- |
 | Deploy Infrastructure | Push to `development` | dev |
 | Deploy Infrastructure | Push to `master` | test |
 | Deploy Infrastructure | Manual | prod |
@@ -127,7 +127,7 @@ Authentication to Azure uses OIDC — no long-lived secrets stored in GitHub.
 ## Documentation
 
 | Document | Description |
-|---|---|
+| --- | --- |
 | [Functional Requirements](docs/requirements/functional-requirements.md) | Actors, features, out-of-scope items |
 | [Architecture Overview](docs/architecture/overview.md) | System diagram, tech stack, layer responsibilities |
 | [Domain Model](docs/architecture/domain-model.md) | Entities, aggregates, domain events, enumerations |
@@ -138,7 +138,7 @@ Authentication to Azure uses OIDC — no long-lived secrets stored in GitHub.
 ## Architecture Decisions
 
 | # | Decision |
-|---|---|
+| --- | --- |
 | [ADR 0001](docs/architecture/adr/0001-infrastructure-as-code.md) | Infrastructure as Code with Azure Bicep |
 | [ADR 0002](docs/architecture/adr/0002-cqrs-mediatr.md) | CQRS with MediatR |
 | [ADR 0003](docs/architecture/adr/0003-outbox-pattern.md) | Outbox Pattern for Reliable Messaging |

@@ -1,8 +1,7 @@
 # Notification Flow
 
 | | |
-|---|
----|
+| --- |
 | **Status** | Draft |
 | **Date** | 2026-02-23 |
 | **Updated** | 2026-03-04 |
@@ -19,7 +18,7 @@ Notifications are delivered **asynchronously** using the Outbox pattern combined
 ## 2. Components
 
 | Component | Technology | Role |
-|---|---|---|
+| --- | --- | --- |
 | API Command Handler | MediatR, EF Core | Writes domain change + OutboxMessage in one transaction, then sends a wake-up ping |
 | `IOutboxNotifier` / `ServiceBusOutboxNotifier` | `EventHub.Infrastructure` | Sends a lightweight ping to `outbox-trigger` queue after each successful domain save |
 | `OutboxMessage` table | Azure SQL | Durable staging area for unpublished events |
@@ -35,7 +34,7 @@ Notifications are delivered **asynchronously** using the Outbox pattern combined
 
 ## 3. Sequence — Invitation Sent
 
-```
+```text
  Client          API Handler         DB (SQL)         OutboxFunction    Service Bus      EmailFunction     ACS Email
    │                 │                  │                   │                │                 │               │
    │  POST           │                  │                   │                │                 │               │
@@ -73,11 +72,12 @@ Notifications are delivered **asynchronously** using the Outbox pattern combined
 ## 4. Sequence — Event Cancelled
 
 The flow is identical structurally, but:
+
 - The domain event is `EventCancelled`, raised in `Event.Cancel()`.
 - The `OutboxMessage` payload contains all affected participant emails.
 - The `SendEmailFunction` sends one email per recipient (fan-out inside the function).
 
-```
+```text
  Client          API Handler         DB (SQL)         outbox-trigger   OutboxFunction    Service Bus      EmailFunction     ACS Email
    │  DELETE /events/{id} ──> │         │                  queue              │                │                 │               │
    │                 │ BEGIN TRANSACTION                    │                 │                │                 │               │
@@ -131,7 +131,7 @@ Messages are serialized as JSON and stored in the `OutboxMessages` table.
 
 ## 6. Service Bus Topology
 
-```
+```text
 Topic: notifications
   │
   ├── Subscription: email
@@ -144,6 +144,7 @@ Topic: notifications
 ```
 
 Adding a new notification channel in v2 requires only:
+
 1. Creating a new subscription on the existing topic.
 2. Deploying a new Azure Function triggered by that subscription.
 The publisher (`ProcessOutboxFunction`) does not change.
@@ -153,7 +154,7 @@ The publisher (`ProcessOutboxFunction`) does not change.
 ## 7. Error Handling and Resilience
 
 | Failure Scenario | Behaviour |
-|---|---|
+| --- | --- |
 | API crashes after COMMIT but before ping | OutboxMessage remains unpublished; fallback timer (every 2h) picks it up |
 | Ping send fails (transient Service Bus error) | `ServiceBusOutboxNotifier` swallows the exception and logs a warning; domain transaction is not rolled back; fallback timer covers the gap |
 | `ProcessOutboxOnDemand` fails to publish | Row stays unpublished; fallback timer retries on next 2h tick |
@@ -173,7 +174,7 @@ The publisher (`ProcessOutboxFunction`) does not change.
 ## 9. Configuration
 
 | Setting | Location | Example Value |
-|---|---|---|
+| --- | --- | --- |
 | `ServiceBusConnectionString` | API app settings / Key Vault | `Endpoint=sb://...` |
 | `ServiceBus__OutboxTriggerQueueName` | API app settings | `outbox-trigger` |
 | `ServiceBusConnectionString` | Functions config / Key Vault | `Endpoint=sb://...` |
