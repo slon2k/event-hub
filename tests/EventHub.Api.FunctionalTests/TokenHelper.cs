@@ -18,6 +18,9 @@ internal static class TokenHelper
     public static string OrganizerToken(string organizerId) =>
         CreateToken(organizerId, "Organizer");
 
+    public static string AdminToken(string adminId = "admin-001") =>
+        CreateToken(adminId, "Admin");
+
     private static string CreateToken(string userId, string role)
     {
         var descriptor = new SecurityTokenDescriptor

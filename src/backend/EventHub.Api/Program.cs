@@ -115,6 +115,7 @@ app.MapHealthChecks("/healthz", new HealthCheckOptions
 // -----------------------------------------------------------------------
 app.MapEventEndpoints();
 app.MapInvitationEndpoints();
+app.MapAdminEndpoints();
 
 app.Run();
 
