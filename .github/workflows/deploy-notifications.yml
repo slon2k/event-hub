@@ -59,7 +59,8 @@ jobs:
       - name: Test
         run: |
           dotnet test tests/EventHub.Notifications.UnitTests/EventHub.Notifications.UnitTests.csproj \
-            tests/EventHub.Notifications.IntegrationTests/EventHub.Notifications.IntegrationTests.csproj \
+            --no-build --configuration Release --verbosity normal
+          dotnet test tests/EventHub.Notifications.IntegrationTests/EventHub.Notifications.IntegrationTests.csproj \
             --no-build --configuration Release --verbosity normal
 
       - name: Publish
