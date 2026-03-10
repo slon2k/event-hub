@@ -29,7 +29,18 @@ param appSettings = [
   }
   {
     name: 'AzureAd__Audience'
-    value: 'api://<DEV_CLIENT_ID>'
+    value: 'api://<YOUR_PROD_CLIENT_ID>'
+  }
+  {
+    // Entra tenant ID — used by EntraIdentityAdminService for Graph calls
+    name: 'AzureAd__TenantId'
+    value: '<YOUR_TENANT_ID>'
+  }
+  {
+    // App registration client ID — used to resolve the API service principal
+    // and look up the Organizer app role ID for role assignments
+    name: 'AzureAd__ApiAppClientId'
+    value: '<YOUR_PROD_CLIENT_ID>'
   }
 ]
 

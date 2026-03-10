@@ -33,6 +33,17 @@ param appSettings = [
     name: 'AzureAd__Audience'
     value: 'api://09af58ae-9706-469f-8dfe-c913428505fd'
   }
+  {
+    // Entra tenant ID — used by EntraIdentityAdminService for Graph calls
+    name: 'AzureAd__TenantId'
+    value: '8dd52aee-fd49-4e5c-ace3-0a0e907b0529'
+  }
+  {
+    // App registration client ID — used to resolve the API service principal
+    // and look up the Organizer app role ID for role assignments
+    name: 'AzureAd__ApiAppClientId'
+    value: '09af58ae-9706-469f-8dfe-c913428505fd'
+  }
 ]
 
 // Function app settings — ACS stub active; emails are written to the EmailOutbox table in Azure

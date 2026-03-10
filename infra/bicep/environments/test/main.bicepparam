@@ -32,6 +32,17 @@ param appSettings = [
     name: 'AzureAd__Audience'
     value: 'api://c97af009-1376-4bf4-a79f-083198225966'
   }
+  {
+    // Entra tenant ID — used by EntraIdentityAdminService for Graph calls
+    name: 'AzureAd__TenantId'
+    value: '8dd52aee-fd49-4e5c-ace3-0a0e907b0529'
+  }
+  {
+    // App registration client ID — used to resolve the API service principal
+    // and look up the Organizer app role ID for role assignments
+    name: 'AzureAd__ApiAppClientId'
+    value: 'c97af009-1376-4bf4-a79f-083198225966'
+  }
 ]
 
 // Function app settings — ACS stub active; emails are logged to console, not sent.

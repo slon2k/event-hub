@@ -181,8 +181,28 @@ In **App Service → Configuration → Application settings**, add:
 | `Authentication__Mode` | `AzureAd` |
 | `AzureAd__Authority` | `https://login.microsoftonline.com/<TENANT_ID>/v2.0` |
 | `AzureAd__Audience` | `api://<CLIENT_ID>` |
+| `AzureAd__TenantId` | `<TENANT_ID>` |
+| `AzureAd__ApiAppClientId` | `<CLIENT_ID>` |
 
-Or pass them via the Bicep environment parameter files in `infra/bicep/environments/<env>/`.
+Or pass them via the Bicep environment parameter files in `infra/bicep/environments/<env>/`. `AzureAd__TenantId` and `AzureAd__ApiAppClientId` are already set in the dev and test parameter files.
+
+#### 6. Grant Microsoft Graph permissions to the App Service managed identity
+
+The App Service system-assigned managed identity needs three Graph application permissions so that `EntraIdentityAdminService` can query Entra users and manage app role assignments.
+
+> **Prerequisite:** The principal running this step must have `AppRoleAssignment.ReadWrite.All` and `Application.Read.All` in Graph (see OIDC Setup step 6). In CI this runs automatically as part of `deploy-infra.yml`. For a manual first deployment, run:
+
+```bash
+bash infra/scripts/grant-graph-permissions.sh eventhub-<env>-rg eventhub-<env>-api
+```
+
+The script is idempotent — safe to run multiple times. After it completes, the following three permissions appear under **Azure Portal → Managed Identity → eventhub-\<env\>-api → Azure role assignments** (or under the API app registration's **API permissions** page) with status **Granted for \<tenant\>**:
+
+| Permission | Purpose |
+| --- | --- |
+| `User.Read.All` | Query Entra users for `GET /api/admin/users` |
+| `Application.Read.All` | Resolve the API service principal and Organizer app role ID |
+| `AppRoleAssignment.ReadWrite.All` | Assign and remove the Organizer app role |
 
 #### Environment reference
 
@@ -212,8 +232,20 @@ Required once per repository. See [Azure OIDC documentation](https://learn.micro
      --scope "/subscriptions/<subscription-id>/resourceGroups/<resource-group>"
    ```
 
-6. Add repository secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
-7. Add the following secret to **each GitHub environment** (`dev`, `test`, `prod`):
+6. Grant the deployment service principal the two Graph API permissions it needs to run `grant-graph-permissions.sh` during deployment. This requires a **Global Administrator** or **Privileged Role Administrator** to grant admin consent once:
+
+   ```powershell
+   # Grant Application.Read.All (9a5d68dd-...) and AppRoleAssignment.ReadWrite.All (06b708a9-...)
+   az ad app permission add --id <sp-app-id> \
+     --api 00000003-0000-0000-c000-000000000000 \
+     --api-permissions 9a5d68dd-52b0-4cc2-bd40-abcf44ac3a30=Role \
+                       06b708a9-e830-4db3-a914-8e69da51d44f=Role
+
+   az ad app permission admin-consent --id <sp-app-id>
+   ```
+
+7. Add repository secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
+8. Add the following secret to **each GitHub environment** (`dev`, `test`, `prod`):
 
 | Secret | Description |
 | --- | --- |
@@ -250,6 +282,8 @@ Swap back to a previous deployment slot or redeploy a previous build artifact fr
 | `No subscriptions found` | Service principal missing role assignment | Assign Contributor role on the resource group |
 | `always_on cannot be set for Free tier` | `alwaysOn: true` on F1 plan | Bicep sets `alwaysOn` automatically based on SKU — ensure `skuName = 'F1'` |
 | `Authorization failed for roleAssignments/write` | Service principal missing User Access Administrator | Assign User Access Administrator on each resource group (see OIDC setup step 5) |
+| Graph calls return `403 Forbidden` from `EntraIdentityAdminService` | Missing Graph app role assignments on managed identity | Run `bash infra/scripts/grant-graph-permissions.sh <rg> <webapp>` or re-deploy infra so the CI step runs |
+| `Authorization_RequestDenied` when granting Graph permissions | Deployment SP lacks Graph permissions or admin consent | Ensure OIDC setup step 6 (Graph permission + admin consent) has been completed for the deployment service principal |
 | `RoleDefinitionDoesNotExist` | Wrong built-in role GUID | Run `az role definition list --name "Key Vault Secrets User" --query "[0].name" -o tsv` to get the correct GUID for your tenant |
 | App Service connection string unresolved | KV reference not working | Check App Service identity is enabled, Key Vault RBAC role assignment exists, and secret name matches `sql-connection-string` |
 | Function timer never fires, zero invocations | Storage RBAC not applied to managed identity | Verify the function app identity has `Storage Blob Data Owner`, `Storage Queue Data Contributor`, and `Storage Table Data Contributor` on the storage account. Bicep assigns these automatically — if applying to a pre-existing function app, redeploy infra or grant manually. |

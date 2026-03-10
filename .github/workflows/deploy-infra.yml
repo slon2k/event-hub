@@ -140,6 +140,13 @@ jobs:
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters infra/bicep/environments/dev/main.bicepparam
 
+      - name: Grant Graph API permissions to API managed identity
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            bash infra/scripts/grant-graph-permissions.sh eventhub-dev-rg eventhub-dev-api
+
       - name: Grant Key Vault access to managed identities
         uses: azure/cli@v2
         with:
@@ -212,6 +219,13 @@ jobs:
               --resource-group eventhub-test-rg \
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters infra/bicep/environments/test/main.bicepparam
+
+      - name: Grant Graph API permissions to API managed identity
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            bash infra/scripts/grant-graph-permissions.sh eventhub-test-rg eventhub-test-api
 
       - name: Grant Key Vault access to managed identities
         uses: azure/cli@v2
@@ -291,6 +305,13 @@ jobs:
               --resource-group eventhub-prod-rg \
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters infra/bicep/environments/prod/main.bicepparam
+
+      - name: Grant Graph API permissions to API managed identity
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            bash infra/scripts/grant-graph-permissions.sh eventhub-prod-rg eventhub-prod-api
 
       - name: Grant Key Vault access to managed identities
         uses: azure/cli@v2
