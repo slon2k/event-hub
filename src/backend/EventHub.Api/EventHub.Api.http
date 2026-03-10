@@ -1,6 +1,7 @@
 @host = {{$dotenv EVENTHUB_HOST}}
 @bearerToken = {{$dotenv EVENTHUB_BEARER_TOKEN}}
 @adminBearerToken = {{$dotenv EVENTHUB_ADMIN_BEARER_TOKEN}}
+@targetUserId = 803059c5-45ac-4933-b651-e731df39193c
 @eventId = e4786a6f-1426-476f-a99c-52f9ba875c9c
 @invitationId = e5107a24-9f99-463f-9fc4-65d7b9fbe5c0
 # The raw token is never persisted to the database — retrieve it from the EmailOutbox table in
@@ -148,6 +149,28 @@ Authorization: Bearer {{bearerToken}}
 GET {{host}}/api/admin/events
 Authorization: Bearer {{adminBearerToken}}
 Accept: application/json
+
+###
+# List users (page 1, default page size)
+GET {{host}}/api/admin/users
+Authorization: Bearer {{adminBearerToken}}
+Accept: application/json
+
+###
+# List users — search by name/UPN prefix
+GET {{host}}/api/admin/users?search=manager&pageSize=10
+Authorization: Bearer {{adminBearerToken}}
+Accept: application/json
+
+###
+# Assign Organizer role
+POST {{host}}/api/admin/users/{{targetUserId}}/roles/organizer
+Authorization: Bearer {{adminBearerToken}}
+
+###
+# Remove Organizer role
+DELETE {{host}}/api/admin/users/{{targetUserId}}/roles/organizer
+Authorization: Bearer {{adminBearerToken}}
 
 # -------------------------------------------------------------------------
 # Error cases
