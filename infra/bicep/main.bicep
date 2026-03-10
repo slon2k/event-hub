@@ -42,6 +42,18 @@ param sqlAdminUser string = 'sqladmin'
 @description('SQL administrator password. Must be supplied at deploy time — do not store in source control.')
 param sqlAdminPassword string
 
+@secure()
+@description('Entra ID tenant ID for the identity tenant (Graph calls). Supplied via GRAPH_TENANT_ID GitHub environment secret.')
+param graphTenantId string = ''
+
+@secure()
+@description('Graph client app registration ID in the identity tenant. Supplied via GRAPH_CLIENT_ID GitHub environment secret.')
+param graphClientId string = ''
+
+@secure()
+@description('Graph client secret. Supplied via GRAPH_CLIENT_SECRET GitHub environment secret.')
+param graphClientSecret string = ''
+
 @description('SQL database SKU. Use { name: "Basic", tier: "Basic" } for dev/test or { name: "S0", tier: "Standard" } for prod. Ignored when useFreeLimit is true.')
 param sqlDatabaseSku object = { name: 'Basic', tier: 'Basic' }
 
@@ -110,6 +122,9 @@ module sql 'modules/sql.bicep' = {
 var sqlConnectionString = 'Server=tcp:${sql.outputs.sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};User ID=${sqlAdminUser};Password=${sqlAdminPassword};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
 var sqlConnectionStringKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/sql-connection-string/)'
 var serviceBusConnectionStringKvRef = '@Microsoft.KeyVault(SecretUri=${serviceBusConnectionStringSecretUri})'
+var graphTenantIdKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/graph-tenant-id/)'
+var graphClientIdKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/graph-client-id/)'
+var graphClientSecretKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/graph-client-secret/)'
 
 module api 'modules/appService.bicep' = {
   name: 'appService'
@@ -134,6 +149,18 @@ module api 'modules/appService.bicep' = {
       {
         name: 'ServiceBus__OutboxTriggerQueueName'
         value: 'outbox-trigger'
+      }
+      {
+        name: 'Graph__TenantId'
+        value: graphTenantIdKvRef
+      }
+      {
+        name: 'Graph__ClientId'
+        value: graphClientIdKvRef
+      }
+      {
+        name: 'Graph__ClientSecret'
+        value: graphClientSecretKvRef
       }
     ])
     applicationInsightsConnectionString: appInsights.outputs.connectionString
@@ -200,10 +227,15 @@ module keyVault 'modules/keyVault.bicep' = {
     location: location
     enablePurgeProtection: enablePurgeProtection
     secretsUserPrincipalIds: [api.outputs.webAppPrincipalId, functionApp.outputs.functionAppPrincipalId]
-    secrets: {
-      'sql-connection-string': sqlConnectionString
-      'servicebus-connection-string': serviceBus.outputs.primaryConnectionString
-    }
+    secrets: union(
+      {
+        'sql-connection-string': sqlConnectionString
+        'servicebus-connection-string': serviceBus.outputs.primaryConnectionString
+      },
+      !empty(graphTenantId) ? { 'graph-tenant-id': graphTenantId } : {},
+      !empty(graphClientId) ? { 'graph-client-id': graphClientId } : {},
+      !empty(graphClientSecret) ? { 'graph-client-secret': graphClientSecret } : {}
+    )
   }
 }
 

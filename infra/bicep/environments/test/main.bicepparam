@@ -13,10 +13,13 @@ param extraTags = {
   environment: 'test'
 }
 
-// Supply via SQL_ADMIN_PASSWORD env var — never hard-code here.
-// CI: set as a GitHub Actions environment secret.
-// Local: $env:SQL_ADMIN_PASSWORD = '<password>' before deploying.
+// Supply via env vars — never hard-code here.
+// CI: set as GitHub Actions environment secrets.
+// Local: $env:VAR = '<value>' before deploying.
 param sqlAdminPassword = readEnvironmentVariable('SQL_ADMIN_PASSWORD', '')
+param graphTenantId = readEnvironmentVariable('GRAPH_TENANT_ID', '')
+param graphClientId = readEnvironmentVariable('GRAPH_CLIENT_ID', '')
+param graphClientSecret = readEnvironmentVariable('GRAPH_CLIENT_SECRET', '')
 
 // App settings
 param appSettings = [
@@ -31,17 +34,6 @@ param appSettings = [
   {
     name: 'AzureAd__Audience'
     value: 'api://c97af009-1376-4bf4-a79f-083198225966'
-  }
-  {
-    // Entra tenant ID — used by EntraIdentityAdminService for Graph calls
-    name: 'AzureAd__TenantId'
-    value: '8dd52aee-fd49-4e5c-ace3-0a0e907b0529'
-  }
-  {
-    // App registration client ID — used to resolve the API service principal
-    // and look up the Organizer app role ID for role assignments
-    name: 'AzureAd__ApiAppClientId'
-    value: 'c97af009-1376-4bf4-a79f-083198225966'
   }
 ]
 

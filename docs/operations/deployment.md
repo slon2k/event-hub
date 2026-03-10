@@ -186,23 +186,44 @@ In **App Service → Configuration → Application settings**, add:
 
 Or pass them via the Bicep environment parameter files in `infra/bicep/environments/<env>/`. `AzureAd__TenantId` and `AzureAd__ApiAppClientId` are already set in the dev and test parameter files.
 
-#### 6. Grant Microsoft Graph permissions to the App Service managed identity
+#### 6. Create a Graph client app registration and grant Graph permissions
 
-The App Service system-assigned managed identity needs three Graph application permissions so that `EntraIdentityAdminService` can query Entra users and manage app role assignments.
+> **Multi-directory note:** This project uses two separate Entra ID tenants — one for Azure infrastructure (subscription, App Service, Key Vault) and one for user identities (app registrations, users, groups). The App Service managed identity lives in the infrastructure tenant and cannot call Graph in a different tenant directly. A dedicated **Graph client app registration** in the identity tenant is used instead, with its credentials stored in Key Vault.
 
-> **Who:** Must be run by a **Global Administrator** or **Privileged Role Administrator** — once per environment. CI does **not** run this automatically.
+**Steps (done once per environment by a Global Administrator of the identity tenant):**
 
-```bash
-bash infra/scripts/grant-graph-permissions.sh eventhub-<env>-rg eventhub-<env>-api
-```
+1. In the **identity tenant** → **Entra ID → App registrations → New registration**
+   - Name: `EventHub-GraphClient-<env>` (e.g. `EventHub-GraphClient-dev`)
+   - Supported account types: **Single tenant**
+   - No redirect URI needed
+2. Note the **Application (client) ID** from the Overview page
+3. Go to **Certificates & secrets → New client secret** → create a secret and note the value
+4. Grant the three Graph app-only permissions (requires Global Admin of the identity tenant):
 
-The script is idempotent — safe to run multiple times. After it completes, the following three permissions appear under **Azure Portal → Managed Identity → eventhub-\<env\>-api → Azure role assignments** (or under the API app registration's **API permissions** page) with status **Granted for \<tenant\>**:
+   ```bash
+   # Log in to the IDENTITY tenant (not the infrastructure tenant)
+   az login --tenant <identity-tenant-id>
 
-| Permission | Purpose |
-| --- | --- |
-| `User.Read.All` | Query Entra users for `GET /api/admin/users` |
-| `Application.Read.All` | Resolve the API service principal and Organizer app role ID |
-| `AppRoleAssignment.ReadWrite.All` | Assign and remove the Organizer app role |
+   bash infra/scripts/grant-graph-permissions.sh <graph-client-app-id>
+   ```
+
+   The script is idempotent — safe to run multiple times. After it completes, the following permissions appear under the app registration's **API permissions** with status **Granted for \<tenant\>**:
+
+   | Permission | Purpose |
+   | --- | --- |
+   | `User.Read.All` | Query Entra users for `GET /api/admin/users` |
+   | `Application.Read.All` | Resolve the API service principal and Organizer app role ID |
+   | `AppRoleAssignment.ReadWrite.All` | Assign and remove the Organizer app role |
+
+5. Add the three values as **GitHub Actions environment secrets** for each environment (`dev`, `test`, `prod`):
+
+   | Secret name | Value |
+   | --- | --- |
+   | `GRAPH_TENANT_ID` | Identity tenant ID (e.g. `8dd52aee-...`) |
+   | `GRAPH_CLIENT_ID` | Application (client) ID of `EventHub-GraphClient-<env>` |
+   | `GRAPH_CLIENT_SECRET` | Client secret value from step 3 |
+
+   The next `deploy-infra` run will write these into Key Vault automatically (same mechanism as `SQL_ADMIN_PASSWORD`). The App Service app settings `Graph__TenantId`, `Graph__ClientId`, and `Graph__ClientSecret` are wired to Key Vault references by Bicep — no manual portal steps needed.
 
 #### Environment reference
 
@@ -270,7 +291,8 @@ Swap back to a previous deployment slot or redeploy a previous build artifact fr
 | `No subscriptions found` | Service principal missing role assignment | Assign Contributor role on the resource group |
 | `always_on cannot be set for Free tier` | `alwaysOn: true` on F1 plan | Bicep sets `alwaysOn` automatically based on SKU — ensure `skuName = 'F1'` |
 | `Authorization failed for roleAssignments/write` | Service principal missing User Access Administrator | Assign User Access Administrator on each resource group (see OIDC setup step 5) |
-| Graph calls return `403 Forbidden` from `EntraIdentityAdminService` | Missing Graph app role assignments on managed identity | Run `bash infra/scripts/grant-graph-permissions.sh <rg> <webapp>` as a Global Administrator (one-time per environment, see First-Time Setup §6) |
+| Graph calls return `403 Forbidden` from `EntraIdentityAdminService` | Missing Graph app role assignments on the Graph client app | Run `az login --tenant <identity-tenant-id>` then `bash infra/scripts/grant-graph-permissions.sh <graph-client-app-id>` as a Global Administrator of the identity tenant (see First-Time Setup §6) |
+| `EntraIdentityAdminService` returns `401` / token acquisition fails | `Graph__TenantId`, `Graph__ClientId`, or `Graph__ClientSecret` missing or wrong | Check Key Vault secrets exist and App Service KV references resolve under Configuration → Application settings |
 | `RoleDefinitionDoesNotExist` | Wrong built-in role GUID | Run `az role definition list --name "Key Vault Secrets User" --query "[0].name" -o tsv` to get the correct GUID for your tenant |
 | App Service connection string unresolved | KV reference not working | Check App Service identity is enabled, Key Vault RBAC role assignment exists, and secret name matches `sql-connection-string` |
 | Function timer never fires, zero invocations | Storage RBAC not applied to managed identity | Verify the function app identity has `Storage Blob Data Owner`, `Storage Queue Data Contributor`, and `Storage Table Data Contributor` on the storage account. Bicep assigns these automatically — if applying to a pre-existing function app, redeploy infra or grant manually. |
