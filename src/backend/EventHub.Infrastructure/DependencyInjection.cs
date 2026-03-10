@@ -46,6 +46,12 @@ public static class DependencyInjection
             services.AddSingleton<IOutboxNotifier, ServiceBusOutboxNotifier>();
         }
 
+        // ── Identity admin (Microsoft Graph) ────────────────────────────────────
+        // EntraIdentityAdminService requires Graph:TenantId/ClientId/ClientSecret/ApiAppClientId.
+        // In deployed environments these are sourced from Key Vault references.
+        // Throws InvalidOperationException at first use if any key is absent.
+        services.AddScoped<IIdentityAdminService, EntraIdentityAdminService>();
+
         return services;
     }
 }
