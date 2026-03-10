@@ -34,6 +34,12 @@ param appSettings = [
     name: 'AzureAd__Audience'
     value: 'api://<YOUR_PROD_CLIENT_ID>'
   }
+  {
+    // API app registration client ID — used by EntraIdentityAdminService to
+    // resolve the API service principal and look up app role IDs in Graph
+    name: 'Graph__ApiAppClientId'
+    value: '<YOUR_PROD_CLIENT_ID>'
+  }
 ]
 
 // Function app settings — set UseStub=false and provide real ACS config for prod.

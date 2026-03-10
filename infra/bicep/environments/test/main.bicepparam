@@ -35,6 +35,12 @@ param appSettings = [
     name: 'AzureAd__Audience'
     value: 'api://c97af009-1376-4bf4-a79f-083198225966'
   }
+  {
+    // API app registration client ID — used by EntraIdentityAdminService to
+    // resolve the API service principal and look up app role IDs in Graph
+    name: 'Graph__ApiAppClientId'
+    value: 'c97af009-1376-4bf4-a79f-083198225966'
+  }
 ]
 
 // Function app settings — ACS stub active; emails are logged to console, not sent.

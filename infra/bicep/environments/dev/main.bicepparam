@@ -36,6 +36,12 @@ param appSettings = [
     name: 'AzureAd__Audience'
     value: 'api://09af58ae-9706-469f-8dfe-c913428505fd'
   }
+  {
+    // API app registration client ID — used by EntraIdentityAdminService to
+    // resolve the API service principal and look up app role IDs in Graph
+    name: 'Graph__ApiAppClientId'
+    value: '09af58ae-9706-469f-8dfe-c913428505fd'
+  }
 ]
 
 // Function app settings — ACS stub active; emails are written to the EmailOutbox table in Azure
