@@ -44,7 +44,7 @@ var host = new HostBuilder()
             var tableClient = !string.IsNullOrEmpty(storageAccountName)
                 ? new TableServiceClient(
                     new Uri($"https://{storageAccountName}.table.core.windows.net"),
-                    new ManagedIdentityCredential())
+                    new ManagedIdentityCredential(ManagedIdentityId.SystemAssigned))
                 : new TableServiceClient(
                     config["AzureWebJobsStorage"] ?? "UseDevelopmentStorage=true");
 
