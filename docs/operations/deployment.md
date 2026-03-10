@@ -174,17 +174,17 @@ In **App roles → Create app role** — create two roles:
 
 #### 5. Configure the App Service
 
-In **App Service → Configuration → Application settings**, add:
+The following settings are required for authentication. They are set in the Bicep environment parameter files (`infra/bicep/environments/<env>/main.bicepparam`) and deployed automatically — no manual portal steps are required:
 
 | Name | Value |
 | --- | --- |
 | `Authentication__Mode` | `AzureAd` |
 | `AzureAd__Authority` | `https://login.microsoftonline.com/<TENANT_ID>/v2.0` |
 | `AzureAd__Audience` | `api://<CLIENT_ID>` |
-| `AzureAd__TenantId` | `<TENANT_ID>` |
-| `AzureAd__ApiAppClientId` | `<CLIENT_ID>` |
 
-Or pass them via the Bicep environment parameter files in `infra/bicep/environments/<env>/`. `AzureAd__TenantId` and `AzureAd__ApiAppClientId` are already set in the dev and test parameter files.
+The Graph client settings (`Graph__TenantId`, `Graph__ClientId`, `Graph__ClientSecret`, `Graph__ApiAppClientId`) are also configured in the parameter files. `Graph__TenantId`, `Graph__ClientId`, and `Graph__ClientSecret` are injected as Key Vault references by the deployment pipeline; `Graph__ApiAppClientId` is set as a direct app setting. No manual portal configuration is needed.
+
+> **After rotating the Graph client secret:** update the `GRAPH_CLIENT_SECRET` GitHub Actions environment secret and re-run the infra deployment to update the Key Vault secret and App Service reference.
 
 #### 6. Create a Graph client app registration and grant Graph permissions
 

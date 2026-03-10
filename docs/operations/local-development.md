@@ -100,6 +100,14 @@ dotnet user-jwts list --project src/backend/EventHub.Api
 dotnet user-jwts remove --project src/backend/EventHub.Api --all
 ```
 
+For **admin endpoints**, generate a token with the `Admin` role:
+
+```bash
+dotnet user-jwts create --project src/backend/EventHub.Api --role Admin --claim "oid=user-admin-1" --output token
+```
+
+Copy the token into `EVENTHUB_ADMIN_BEARER_TOKEN` in your `.env` file (see §6). The `.http` files read both `EVENTHUB_BEARER_TOKEN` (Organizer) and `EVENTHUB_ADMIN_BEARER_TOKEN` (Admin) from `.env` so you can test both roles without re-editing files.
+
 ### Option B: Real Azure Entra ID
 
 Set `Authentication:Mode` to `AzureAd` and configure:
@@ -220,7 +228,22 @@ Before running requests:
 3. For RSVP requests, retrieve `@rawToken` from the `OutboxMessages` table (see §6.1 below).
 4. Run create/send requests first so `eventId` and `invitationId` variables are populated manually.
 
-### 6.1 Testing the invitation RSVP flow
+### 6.1 Testing admin endpoints
+
+Admin endpoints require the `Admin` app role. In `DevJwt` mode generate a token as shown in §3 Option A and set `EVENTHUB_ADMIN_BEARER_TOKEN` in `.env`.
+
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `/api/admin/events` | `GET` | All events across all organizers |
+| `/api/admin/users` | `GET` | Paginated user list with role flags (`?page=&pageSize=&search=`) |
+| `/api/admin/users/{userId}/roles/organizer` | `POST` | Assign Organizer role |
+| `/api/admin/users/{userId}/roles/organizer` | `DELETE` | Remove Organizer role |
+
+Sample requests are in [src/backend/EventHub.Api/EventHub.Api.http](../../src/backend/EventHub.Api/EventHub.Api.http) under the `### Admin` section.
+
+> **Note:** `POST`/`DELETE` role endpoints call Microsoft Graph in the target tenant. They require the `Graph__*` settings to be configured (see §8 below). Against the local DevJwt API these endpoints will fail with a configuration error unless Graph secrets are present in user secrets — test role management against the dev Azure environment instead.
+
+### 6.2 Testing the invitation RSVP flow
 
 The raw RSVP token is **never persisted to the database** — it is embedded in the `InvitationSent` domain event and delivered to the email stub.
 
