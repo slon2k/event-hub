@@ -241,7 +241,17 @@ Admin endpoints require the `Admin` app role. In `DevJwt` mode generate a token 
 
 Sample requests are in [src/backend/EventHub.Api/EventHub.Api.http](../../src/backend/EventHub.Api/EventHub.Api.http) under the `### Admin` section.
 
-> **Note:** `POST`/`DELETE` role endpoints call Microsoft Graph in the target tenant. They require the `Graph__*` settings to be configured (see §8 below). Against the local DevJwt API these endpoints will fail with a configuration error unless Graph secrets are present in user secrets — test role management against the dev Azure environment instead.
+> **Note:** `POST`/`DELETE` role endpoints call Microsoft Graph in the target tenant and require the `Graph:*` user secrets to be configured. To set them for local development:
+>
+> ```bash
+> cd src/backend/EventHub.Api
+> dotnet user-secrets set "Graph:TenantId"       "<identity-tenant-id>"
+> dotnet user-secrets set "Graph:ClientId"       "<EventHub-GraphClient-dev app id>"
+> dotnet user-secrets set "Graph:ClientSecret"   "<secret value>"
+> dotnet user-secrets set "Graph:ApiAppClientId" "<EventHub-Api-dev client id>"
+> ```
+>
+> Without these secrets the API still starts, but role assignment endpoints will return `500`. The simplest approach is to test role management against the **dev Azure environment** using the `EventHub.Api.dev.http` request file and a real Admin bearer token.
 
 ### 6.2 Testing the invitation RSVP flow
 
