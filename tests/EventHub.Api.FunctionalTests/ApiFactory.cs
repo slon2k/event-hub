@@ -1,3 +1,4 @@
+using EventHub.Application.Abstractions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -63,6 +64,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             services.AddDbContext<EventHubDbContext>(options =>
                 options.UseSqlServer(_container.GetConnectionString(), sql =>
                     sql.EnableRetryOnFailure(maxRetryCount: 5)));
+
+            // Replace the real Graph-backed service with the in-process stub.
+            services.RemoveAll<IIdentityAdminService>();
+            services.AddSingleton<IIdentityAdminService, FakeIdentityAdminService>();
 
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
             {
