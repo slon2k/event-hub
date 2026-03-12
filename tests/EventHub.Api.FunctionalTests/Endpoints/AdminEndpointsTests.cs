@@ -56,6 +56,109 @@ public class AdminEndpointsTests(ApiFactory factory)
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    // ── GET /api/admin/users ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetUsers_WithAdminToken_Returns200()
+    {
+        var response = await AdminClient().GetAsync("/api/admin/users");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetUsers_WithOrganizerToken_Returns403()
+    {
+        var response = await OrganizerClient("org-403-test").GetAsync("/api/admin/users");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetUsers_Unauthenticated_Returns401()
+    {
+        var response = await factory.CreateDefaultClient().GetAsync("/api/admin/users");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    // ── POST /api/admin/users/{userId}/roles/organizer ────────────────────────
+
+    [Fact]
+    public async Task AssignOrganizerRole_WithAdminToken_Returns204()
+    {
+        var response = await AdminClient()
+            .PostAsync($"/api/admin/users/{FakeIdentityAdminService.KnownUserId}/roles/organizer", null);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AssignOrganizerRole_WhenTargetIsSelf_Returns403()
+    {
+        // AdminToken() mints a token with oid = "admin-001"; targeting that same ID triggers the self-guard.
+        var response = await AdminClient()
+            .PostAsync("/api/admin/users/admin-001/roles/organizer", null);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AssignOrganizerRole_WithOrganizerToken_Returns403()
+    {
+        var response = await OrganizerClient("org-403-test")
+            .PostAsync($"/api/admin/users/{FakeIdentityAdminService.KnownUserId}/roles/organizer", null);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AssignOrganizerRole_WhenUserNotFound_Returns404()
+    {
+        var response = await AdminClient()
+            .PostAsync($"/api/admin/users/{FakeIdentityAdminService.NotFoundUserId}/roles/organizer", null);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // ── DELETE /api/admin/users/{userId}/roles/organizer ──────────────────────
+
+    [Fact]
+    public async Task RemoveOrganizerRole_WithAdminToken_Returns204()
+    {
+        var response = await AdminClient()
+            .DeleteAsync($"/api/admin/users/{FakeIdentityAdminService.KnownUserId}/roles/organizer");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RemoveOrganizerRole_WhenTargetIsSelf_Returns403()
+    {
+        var response = await AdminClient()
+            .DeleteAsync("/api/admin/users/admin-001/roles/organizer");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RemoveOrganizerRole_WithOrganizerToken_Returns403()
+    {
+        var response = await OrganizerClient("org-403-test")
+            .DeleteAsync($"/api/admin/users/{FakeIdentityAdminService.KnownUserId}/roles/organizer");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RemoveOrganizerRole_WhenUserNotFound_Returns404()
+    {
+        var response = await AdminClient()
+            .DeleteAsync($"/api/admin/users/{FakeIdentityAdminService.NotFoundUserId}/roles/organizer");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     private static object NewEventRequest(string title) =>
         new
         {
