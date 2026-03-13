@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | **Status** | Active |
-| **Date** | 2026-03-09 |
-| **Version** | 0.3 |
+| **Date** | 2026-03-13 |
+| **Version** | 0.4 |
 
 ---
 
@@ -185,6 +185,7 @@
 
 | Date | Change |
 | --- | --- |
+| 2026-03-13 | Bumped to v0.4; closed issue #31 — `EventSummaryDto` now includes `DeclinedCount` and `TotalInvited` completing the §3.5 RSVP summary |
 | 2026-03-09 | Promoted status to Active, bumped to v0.3; added issues #30 (status filter) and #31 (RSVP summary counts) to track §3.5 gaps |
 | 2026-03-08 | Split RSVP token errors: invalid/expired/not-found → `400 Bad Request`; already-used → `409 Conflict` |
 | 2026-03-08 | Added `204 No Content` as RSVP success response |
