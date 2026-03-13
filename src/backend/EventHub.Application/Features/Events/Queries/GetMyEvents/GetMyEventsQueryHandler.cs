@@ -27,6 +27,8 @@ public sealed class GetMyEventsQueryHandler(IApplicationDbContext context)
                 e.Status.ToString(),
                 e.Invitations.Count(i => i.Status == InvitationStatus.Accepted),
                 e.Invitations.Count(i => i.Status == InvitationStatus.Pending),
+                e.Invitations.Count(i => i.Status == InvitationStatus.Declined),
+                e.Invitations.Count(),
                 e.CreatedAt))
             .ToListAsync(cancellationToken);
     }

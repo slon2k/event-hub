@@ -9,4 +9,6 @@ public record EventSummaryDto(
     string Status,
     int AcceptedCount,
     int PendingCount,
+    int DeclinedCount,
+    int TotalInvited,
     DateTimeOffset CreatedAt);

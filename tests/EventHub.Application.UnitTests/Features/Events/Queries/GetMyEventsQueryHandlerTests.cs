@@ -50,12 +50,14 @@ public class GetMyEventsQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenCalled_CountsAcceptedInvitationsCorrectly()
+    public async Task Handle_WhenCalled_CountsInvitationsByStatusCorrectly()
     {
         var ev = CreatePublishedEvent("organizer-1");
         ev.AddInvitation("accepted@example.com", "raw1", "hash1", DateTimeOffset.UtcNow.AddHours(72), Guid.NewGuid());
-        var pendingInvitation = ev.AddInvitation("pending@example.com", "raw2", "hash2", DateTimeOffset.UtcNow.AddHours(72), Guid.NewGuid());
+        ev.AddInvitation("pending@example.com",  "raw2", "hash2", DateTimeOffset.UtcNow.AddHours(72), Guid.NewGuid());
+        ev.AddInvitation("declined@example.com", "raw3", "hash3", DateTimeOffset.UtcNow.AddHours(72), Guid.NewGuid());
         ev.AcceptInvitation(ev.Invitations.First(i => i.ParticipantEmail == "accepted@example.com").Id);
+        ev.DeclineInvitation(ev.Invitations.First(i => i.ParticipantEmail == "declined@example.com").Id);
         var mockContext = BuildMockContext([ev]);
 
         var result = await new GetMyEventsQueryHandler(mockContext.Object)
@@ -63,6 +65,8 @@ public class GetMyEventsQueryHandlerTests
 
         Assert.Equal(1, result[0].AcceptedCount);
         Assert.Equal(1, result[0].PendingCount);
+        Assert.Equal(1, result[0].DeclinedCount);
+        Assert.Equal(3, result[0].TotalInvited);
     }
 
     [Fact]
