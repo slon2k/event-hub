@@ -23,7 +23,8 @@ public static class EventEndpoints
 
         group.MapGet("/", GetMyEvents)
             .WithName("GetMyEvents")
-            .Produces<IReadOnlyList<EventSummaryDto>>();
+            .Produces<IReadOnlyList<EventSummaryDto>>()
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         group.MapGet("/{id:guid}", GetEventById)
             .WithName("GetEventById")
@@ -62,10 +63,11 @@ public static class EventEndpoints
     private static async Task<IResult> GetMyEvents(
         ClaimsPrincipal user,
         ISender sender,
+        [FromQuery] string? status,
         CancellationToken cancellationToken)
     {
         var organizerId = user.GetUserId();
-        var result = await sender.Send(new GetMyEventsQuery(organizerId), cancellationToken);
+        var result = await sender.Send(new GetMyEventsQuery(organizerId, status), cancellationToken);
         return Results.Ok(result);
     }
 
