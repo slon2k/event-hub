@@ -41,6 +41,12 @@ Authorization: Bearer {{bearerToken}}
 Accept: application/json
 
 ###
+# Get my events filtered by status (Draft | Published | Cancelled)
+GET {{host}}/api/events?status=Published
+Authorization: Bearer {{bearerToken}}
+Accept: application/json
+
+###
 # Create event
 # @name createEvent
 POST {{host}}/api/events
