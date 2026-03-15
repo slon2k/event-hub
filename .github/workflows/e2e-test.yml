@@ -1,0 +1,78 @@
+name: E2E Tests – test environment
+
+on:
+  # Runs automatically after a successful Deploy API run on master
+  workflow_run:
+    workflows: ["Deploy API"]
+    branches: [master]
+    types: [completed]
+
+  # Manual trigger — useful for ad-hoc runs or re-runs after a flaky test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Run E2E Tests
+    # For workflow_run, only proceed when the triggering run succeeded
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: test
+
+    env:
+      EVENTHUB_TEST_HOST: ${{ vars.EVENTHUB_TEST_HOST }}
+      EVENTHUB_TEST_ORGANIZER_TOKEN: ${{ secrets.EVENTHUB_TEST_ORGANIZER_TOKEN }}
+      EVENTHUB_TEST_ADMIN_TOKEN: ${{ secrets.EVENTHUB_TEST_ADMIN_TOKEN }}
+      EVENTHUB_TEST_TARGET_USER_ID: ${{ vars.EVENTHUB_TEST_TARGET_USER_ID }}
+      DOTNET_VERSION: '10.x'
+
+    steps:
+      - uses: actions/checkout@v4
+        # For workflow_run events the ref defaults to the default branch, so we
+        # explicitly check out the commit that the triggering workflow ran on.
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore tests/EventHub.Api.E2ETests
+
+      - name: Build
+        run: dotnet build tests/EventHub.Api.E2ETests --no-restore --configuration Release
+
+      - name: Run E2E tests
+        run: |
+          dotnet test tests/EventHub.Api.E2ETests \
+            --no-build \
+            --configuration Release \
+            --verbosity normal \
+            --filter "Category=E2E" \
+            --logger "trx;LogFileName=e2e-results.trx" \
+            --logger "console;verbosity=normal"
+
+      - name: Publish test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: "**/*.trx"
+          retention-days: 14
+
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## E2E Test Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Environment:** \`${{ vars.EVENTHUB_TEST_HOST }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Triggered by:** \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "**Result:** ✅ All E2E tests passed" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**Result:** ❌ One or more E2E tests failed — check the test results artifact" >> "$GITHUB_STEP_SUMMARY"
+          fi

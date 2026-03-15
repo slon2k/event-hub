@@ -122,6 +122,7 @@ See [infra/README.md](infra/README.md) or the [deployment runbook](docs/operatio
 | Deploy Notifications | Push to `development` | dev |
 | Deploy Notifications | Push to `master` | test |
 | Deploy Notifications | Manual | prod |
+| E2E Tests | After Deploy API on `master` / Manual | test |
 
 Authentication to Azure uses OIDC — no long-lived secrets stored in GitHub.
 
