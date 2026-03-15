@@ -129,6 +129,7 @@ var serviceBusConnectionStringKvRef = '@Microsoft.KeyVault(SecretUri=${serviceBu
 var graphTenantIdKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/graph-tenant-id/)'
 var graphClientIdKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/graph-client-id/)'
 var graphClientSecretKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/graph-client-secret/)'
+var rsvpHmacKeyKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/rsvp-hmac-key/)'
 
 module api 'modules/appService.bicep' = {
   name: 'appService'
