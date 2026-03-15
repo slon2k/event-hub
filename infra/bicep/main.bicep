@@ -54,6 +54,10 @@ param graphClientId string = ''
 @description('Graph client secret. Supplied via GRAPH_CLIENT_SECRET GitHub environment secret.')
 param graphClientSecret string = ''
 
+@secure()
+@description('Base64-encoded HMAC-SHA256 key for RSVP magic-link token signing. Supplied via RSVP_HMAC_KEY GitHub environment secret.')
+param rsvpHmacKey string = ''
+
 @description('SQL database SKU. Use { name: "Basic", tier: "Basic" } for dev/test or { name: "S0", tier: "Standard" } for prod. Ignored when useFreeLimit is true.')
 param sqlDatabaseSku object = { name: 'Basic', tier: 'Basic' }
 
@@ -162,6 +166,10 @@ module api 'modules/appService.bicep' = {
         name: 'Graph__ClientSecret'
         value: graphClientSecretKvRef
       }
+      {
+        name: 'RsvpToken__HmacKey'
+        value: rsvpHmacKeyKvRef
+      }
     ])
     applicationInsightsConnectionString: appInsights.outputs.connectionString
     connectionStrings: concat(connectionStrings, [
@@ -234,7 +242,8 @@ module keyVault 'modules/keyVault.bicep' = {
       },
       !empty(graphTenantId) ? { 'graph-tenant-id': graphTenantId } : {},
       !empty(graphClientId) ? { 'graph-client-id': graphClientId } : {},
-      !empty(graphClientSecret) ? { 'graph-client-secret': graphClientSecret } : {}
+      !empty(graphClientSecret) ? { 'graph-client-secret': graphClientSecret } : {},
+      !empty(rsvpHmacKey) ? { 'rsvp-hmac-key': rsvpHmacKey } : {}
     )
   }
 }

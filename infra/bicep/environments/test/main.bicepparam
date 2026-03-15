@@ -20,6 +20,7 @@ param sqlAdminPassword = readEnvironmentVariable('SQL_ADMIN_PASSWORD', '')
 param graphTenantId = readEnvironmentVariable('GRAPH_TENANT_ID', '')
 param graphClientId = readEnvironmentVariable('GRAPH_CLIENT_ID', '')
 param graphClientSecret = readEnvironmentVariable('GRAPH_CLIENT_SECRET', '')
+param rsvpHmacKey = readEnvironmentVariable('RSVP_HMAC_KEY', '')
 
 // App settings
 param appSettings = [
