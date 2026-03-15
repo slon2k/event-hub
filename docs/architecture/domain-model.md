@@ -1,7 +1,7 @@
 # Domain Model
 
 | | |
-|---|---|
+| --- | --- |
 | **Status** | Draft |
 | **Date** | 2026-02-23 |
 | **Version** | 0.1 |
@@ -15,7 +15,7 @@
 Represents a scheduled occurrence that an Organizer creates and manages.
 
 | Property | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `Id` | `Guid` | Primary key |
 | `Title` | `string` | Required, max 200 chars |
 | `Description` | `string?` | Optional, max 2000 chars |
@@ -29,12 +29,14 @@ Represents a scheduled occurrence that an Organizer creates and manages.
 | `Invitations` | `IReadOnlyCollection<Invitation>` | Navigation — owned by this aggregate |
 
 **Invariants:**
+
 - `DateTime` must be in the future when creating.
 - Invitations can only be added when status is `Published`.
 - Transitioning to `Cancelled` raises an `EventCancelled` domain event.
 - Cannot transition from `Cancelled` to any other status.
 
 **Domain behaviour methods:**
+
 - `Publish()` — Draft → Published
 - `Cancel()` — Draft|Published → Cancelled, raises `EventCancelled`
 - `AddInvitation(email)` — creates Invitation with generated token, raises `InvitationSent`
@@ -47,7 +49,7 @@ Represents a scheduled occurrence that an Organizer creates and manages.
 Represents a single invitation sent to a participant email address. Participants are guests — no account is required. RSVP is authorized via a signed magic link token (see ADR 0006).
 
 | Property | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `Id` | `Guid` | Primary key |
 | `EventId` | `Guid` | FK to `Event` |
 | `ParticipantEmail` | `string` | Email address of the invitee; unique constraint per event |
@@ -58,6 +60,7 @@ Represents a single invitation sent to a participant email address. Participants
 | `RsvpTokenExpiresAt` | `DateTimeOffset?` | UTC expiry; `null` once token is used or invitation cancelled |
 
 **Invariants:**
+
 - Only one active invitation (non-Cancelled) per email address per event.
 - Can only respond (Accept/Decline) if status is `Pending`.
 - Token must be valid (non-null, non-expired, hash matches) to respond.
@@ -65,6 +68,7 @@ Represents a single invitation sent to a participant email address. Participants
 - Accepting when event is at capacity raises a domain exception.
 
 **Domain behaviour methods:**
+
 - `Accept(tokenHash)` — validates token, Pending → Accepted, clears token, raises `InvitationResponded`
 - `Decline(tokenHash)` — validates token, Pending → Declined, clears token, raises `InvitationResponded`
 - `Cancel()` — Pending → Cancelled, clears token
@@ -76,7 +80,7 @@ Represents a single invitation sent to a participant email address. Participants
 A local representation of an Entra ID user (Admin or Organizer), created or updated on first authenticated request. **Participants are guests and do not have `ApplicationUser` records** — they are identified solely by `ParticipantEmail` on the `Invitation`.
 
 | Property | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `Id` | `string` | Entra ID Object ID (OID from JWT `oid` claim) |
 | `Email` | `string` | From JWT `email` claim |
 | `DisplayName` | `string` | From JWT `name` claim |
@@ -91,7 +95,7 @@ A local representation of an Entra ID user (Admin or Organizer), created or upda
 Represents a pending domain event payload to be published to the messaging infrastructure. Written in the same database transaction as the domain change.
 
 | Property | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `Id` | `Guid` | Primary key |
 | `Type` | `string` | Fully qualified event type name (e.g., `InvitationSent`) |
 | `Payload` | `string` | JSON-serialized event data |
@@ -104,41 +108,41 @@ Represents a pending domain event payload to be published to the messaging infra
 
 ## 2. Entity Relationship Diagram
 
-```
-┌─────────────────────────┐          ┌──────────────────────────┐
-│         Event            │          │       Invitation          │
-├─────────────────────────┤  1     * ├──────────────────────────┤
-│ Id             (PK)      │◀────────▶│ Id              (PK)     │
-│ Title                    │          │ EventId          (FK)    │
-│ Description              │          │ ParticipantEmail  (UQ*)  │
-│ DateTime                 │          │ Status                   │
-│ Location                 │          │ SentAt                   │
-│ Capacity                 │          │ RespondedAt              │
-│ Status                   │          │ RsvpTokenHash            │
-│ OrganizerId              │          │ RsvpTokenExpiresAt       │
-│ CreatedAt                │          └──────────────────────────┘
-│ UpdatedAt                │          * unique per (EventId, ParticipantEmail)
+```text
+┌─────────────────────────┐           ┌──────────────────────────┐
+│         Event           │           │       Invitation         │
+├─────────────────────────┤  1     *  ├──────────────────────────┤
+│ Id             (PK)     │◀────────▶│ Id              (PK)     │
+│ Title                   │           │ EventId          (FK)    │
+│ Description             │           │ ParticipantEmail  (UQ*)  │
+│ DateTime                │           │ Status                   │
+│ Location                │           │ SentAt                   │
+│ Capacity                │           │ RespondedAt              │
+│ Status                  │           │ RsvpTokenHash            │
+│ OrganizerId             │           │ RsvpTokenExpiresAt       │
+│ CreatedAt               │           └──────────────────────────┘
+│ UpdatedAt               │           * unique per (EventId, ParticipantEmail)
 └─────────────────────────┘
 
 ┌─────────────────────────┐
-│     ApplicationUser      │
-│  (Admin / Organizer)     │
+│     ApplicationUser     │
+│  (Admin / Organizer)    │
 ├─────────────────────────┤
 │ Id  (Entra OID)  (PK)   │
-│ Email                    │
-│ DisplayName              │
+│ Email                   │
+│ DisplayName             │
 └─────────────────────────┘
 
 ┌─────────────────────────┐
-│      OutboxMessage       │
+│      OutboxMessage      │
 ├─────────────────────────┤
-│ Id             (PK)      │
-│ Type                     │
-│ Payload                  │
-│ CreatedAt                │
-│ PublishedAt              │
-│ Error                    │
-│ RetryCount               │
+│ Id             (PK)     │
+│ Type                    │
+│ Payload                 │
+│ CreatedAt               │
+│ PublishedAt             │
+│ Error                   │
+│ RetryCount              │
 └─────────────────────────┘
 ```
 
@@ -149,7 +153,7 @@ Represents a pending domain event payload to be published to the messaging infra
 ### `EventStatus`
 
 | Value | Description |
-|---|---|
+| --- | --- |
 | `Draft` | Created but not yet visible to participants; cannot be invited to |
 | `Published` | Active; invitations can be sent |
 | `Cancelled` | Permanently deactivated; all pending invitations are invalidated |
@@ -157,7 +161,7 @@ Represents a pending domain event payload to be published to the messaging infra
 ### `InvitationStatus`
 
 | Value | Description |
-|---|---|
+| --- | --- |
 | `Pending` | Sent, awaiting participant response |
 | `Accepted` | Participant confirmed attendance |
 | `Declined` | Participant declined |
@@ -170,7 +174,7 @@ Represents a pending domain event payload to be published to the messaging infra
 Domain events are raised inside aggregate methods and dispatched by the Application layer after `SaveChanges()`.
 
 | Event | Raised By | Triggered When |
-|---|---|---|
+| --- | --- | --- |
 | `EventCancelled` | `Event.Cancel()` | An event's status changes to `Cancelled` |
 | `InvitationSent` | `Event.AddInvitation()` | A new invitation is created |
 | `InvitationResponded` | `Invitation.Accept()` / `Invitation.Decline()` | A participant submits an RSVP |
@@ -206,7 +210,7 @@ public record EventCancelled(
 ## 5. Domain Services
 
 | Service | Responsibility |
-|---|---|
+| --- | --- |
 | `IRsvpTokenService` | Generates a raw HMAC-SHA256 token + its hash; validates a raw token against a stored hash and expiry. Defined in Domain, implemented in Infrastructure. |
 
 ---
@@ -214,7 +218,7 @@ public record EventCancelled(
 ## 6. Validation Rules Summary
 
 | Rule | Where Enforced |
-|---|---|
+| --- | --- |
 | Event date must be in the future | Domain (`Event` constructor) + FluentValidation |
 | Event capacity must be positive if set | Domain (`Event` constructor) + FluentValidation |
 | Duplicate invitation per email per event | Domain (`Event.AddInvitation()`) |

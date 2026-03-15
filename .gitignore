@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# Azure Functions local settings (contains connection strings and secrets)
+local.settings.json
+
 # User-specific files
 *.rsuser
 *.suo

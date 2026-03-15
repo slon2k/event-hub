@@ -1,10 +1,13 @@
+using Azure.Messaging.ServiceBus;
 using EventHub.Application.Abstractions;
 using EventHub.Domain.Services;
+using EventHub.Infrastructure.Messaging;
 using EventHub.Infrastructure.Persistence;
 using EventHub.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace EventHub.Infrastructure;
 
@@ -31,6 +34,23 @@ public static class DependencyInjection
 
         services.AddSingleton<IRsvpTokenService>(
             new RsvpTokenService(rsvpKey));
+
+        // ── Outbox wake-up notifier ──────────────────────────────────────────────
+        // Optional: only registered when ServiceBusConnectionString is configured.
+        // When absent (e.g. local dev without Service Bus), the DbContext simply
+        // skips the ping and relies on the fallback timer in the Function App.
+        var sbConnectionString = configuration["ServiceBusConnectionString"];
+        if (!string.IsNullOrEmpty(sbConnectionString))
+        {
+            services.AddSingleton(new ServiceBusClient(sbConnectionString));
+            services.AddSingleton<IOutboxNotifier, ServiceBusOutboxNotifier>();
+        }
+
+        // ── Identity admin (Microsoft Graph) ────────────────────────────────────
+        // EntraIdentityAdminService requires Graph:TenantId/ClientId/ClientSecret/ApiAppClientId.
+        // In deployed environments these are sourced from Key Vault references.
+        // Throws InvalidOperationException at first use if any key is absent.
+        services.AddScoped<IIdentityAdminService, EntraIdentityAdminService>();
 
         return services;
     }

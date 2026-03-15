@@ -1,7 +1,7 @@
 # ADR 0005 — Azure Entra ID for Authentication and Authorization
 
 | | |
-|---|---|
+| --- | --- |
 | **Status** | Accepted (updated 2026-02-23) |
 | **Date** | 2026-02-23 |
 | **Deciders** | Engineering team |
@@ -27,7 +27,7 @@ We use **Azure Entra ID (formerly Azure Active Directory)** as the identity prov
 ### JWT Claims Used
 
 | Claim | Purpose |
-|---|---|
+| --- | --- |
 | `oid` (Object ID) | Stable unique user identifier — used as `ApplicationUser.Id` |
 | `email` | Display and invitation lookup |
 | `name` | Display name |
@@ -36,7 +36,7 @@ We use **Azure Entra ID (formerly Azure Active Directory)** as the identity prov
 ### API Authorization Summary
 
 | Endpoint | Auth Method | Required Role |
-|---|---|---|
+| --- | --- | --- |
 | `POST /events` | Entra ID JWT | `Organizer` |
 | `PUT /events/{id}` | Entra ID JWT | `Organizer` (own events only) |
 | `DELETE /events/{id}` | Entra ID JWT | `Organizer` (own events only) |
@@ -49,17 +49,18 @@ We use **Azure Entra ID (formerly Azure Active Directory)** as the identity prov
 ## Alternatives Considered
 
 | Option | Reason not chosen |
-|---|---|
+| --- | --- |
 | Entra ID for all roles including Participant | Requires external/casual participants to have an enterprise account; creates unnecessary friction for RSVP |
-| ASP.NET Core Identity for Participants | Second user store, custom token issuance, password reset, email confirmation — significant boilerplate that distracts from the core patterns being taught; see ADR 0006 |
-| Auth0 / Okta | Third-party SaaS; adds external dependency and cost; less relevant for Azure-focused training |
-| Entra External Identities (B2C) | Separate tenant resource, significant setup overhead; better suited as a standalone training topic |
+| ASP.NET Core Identity for Participants | Introduces a second identity store with custom token issuance, password reset, and email confirmation flows — significant complexity with no architectural benefit for this application; see ADR 0006 |
+| Auth0 / Okta | Third-party SaaS; adds external dependency and cost; inconsistent with the Azure-first infrastructure strategy |
+| Entra External Identities (B2C) | Separate tenant resource; significant setup overhead not justified by the participant authentication requirement |
 | API Keys | No user identity — cannot enforce per-user resource ownership or role-based access |
-| No authentication | Acceptable for pure domain demos but undermines the "prod-like" training goal |
+| No authentication | Incompatible with resource ownership and role-based access control requirements |
 
 ## Consequences
 
 ### Positive
+
 - No custom auth code — token validation is handled by `Microsoft.Identity.Web` / `Microsoft.AspNetCore.Authentication.JwtBearer`.
 - App Roles in Entra ID are the authoritative source of role assignments — no role sync needed.
 - Consistent with enterprise Azure patterns — relevant and transferable knowledge for attendees.
@@ -67,8 +68,9 @@ We use **Azure Entra ID (formerly Azure Active Directory)** as the identity prov
 - Participants as guests avoids the need for a second identity system entirely.
 
 ### Negative / Trade-offs
+
 - Requires an Azure Entra ID tenant — not runnable offline without mocking or test tokens.
 - Local development requires either a real dev tenant or a configured test token (documented in `docs/operations/local-development.md`).
-- Token expiry (default 1 hour access token) requires clients to handle refresh — not a concern for an API-only v1 but relevant when the React frontend is added.
+- Token expiry (default 1 hour access token) requires clients to handle refresh — not a concern for an API-only v1 but relevant when the web frontend is added.
 - App Role assignments in Entra ID are not version-controlled — must be documented and scripted separately (future: `infra/scripts/assign-roles.sh`).
 - The split auth model (JWT for organizers, magic link for participants) requires two distinct auth middleware registrations and clear endpoint segregation.

@@ -1,6 +1,219 @@
-@EventHub.Api_HostAddress = http://localhost:5165
+@host = {{$dotenv EVENTHUB_HOST}}
+@bearerToken = {{$dotenv EVENTHUB_BEARER_TOKEN}}
+@adminBearerToken = {{$dotenv EVENTHUB_ADMIN_BEARER_TOKEN}}
+@targetUserId = 803059c5-45ac-4933-b651-e731df39193c
+@eventId = e4786a6f-1426-476f-a99c-52f9ba875c9c
+@invitationId = e5107a24-9f99-463f-9fc4-65d7b9fbe5c0
+# The raw token is never persisted to the database — retrieve it from the EmailOutbox table in
+# Azure Table Storage (Storage Explorer / VS Code Azure extension / Portal):
+#
+#   Storage account → Tables → EmailOutbox
+#   Filter: PartitionKey eq '<eventId>'
+#   Copy the RsvpToken column for the matching InvitationId row.
+#
+# Alternatively, query the OutboxMessages table directly (before the outbox is processed):
+#
+#   SELECT TOP 1
+#       JSON_VALUE(Payload, '$.InvitationId') AS InvitationId,
+#       JSON_VALUE(Payload, '$.RsvpToken')    AS RawToken,
+#       JSON_VALUE(Payload, '$.TokenExpiresAt') AS ExpiresAt
+#   FROM OutboxMessages
+#   WHERE Type LIKE '%InvitationSent%'
+#   ORDER BY CreatedAt DESC;
+@rawToken = 4o5AQvqFKztlWbqh057Q9KGuJ7cvt5F6kgn5-tr8SJ0
+@missingId = 11111111-1111-1111-1111-111111111111
 
-GET {{EventHub.Api_HostAddress}}/weatherforecast/
+# -------------------------------------------------------------------------
+# Health
+# -------------------------------------------------------------------------
+
+###
+GET {{host}}/healthz
+
+# -------------------------------------------------------------------------
+# Events
+# -------------------------------------------------------------------------
+
+###
+# Get my events (Organizer/Admin)
+GET {{host}}/api/events
+Authorization: Bearer {{bearerToken}}
 Accept: application/json
 
 ###
+# Get my events filtered by status (Draft | Published | Cancelled)
+GET {{host}}/api/events?status=Published
+Authorization: Bearer {{bearerToken}}
+Accept: application/json
+
+###
+# Create event
+# @name createEvent
+POST {{host}}/api/events
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": "Dev Env Test Event",
+  "description": "EventHub Dev Session 1",
+  "dateTime": "2026-04-01T10:00:00+00:00",
+  "location": "Room Dev-1",
+  "capacity": 20
+}
+# After running: copy the returned "id" value into @eventId above
+
+###
+# Get event by id
+GET {{host}}/api/events/{{eventId}}
+Authorization: Bearer {{bearerToken}}
+Accept: application/json
+
+###
+# Get event — not found
+GET {{host}}/api/events/{{missingId}}
+Authorization: Bearer {{bearerToken}}
+Accept: application/json
+
+###
+# Update event
+PUT {{host}}/api/events/{{eventId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": "Dev Env Test Event (Updated)",
+  "description": "Updated via dev.http",
+  "dateTime": "2026-04-02T10:00:00+00:00",
+  "location": "Room Dev-2",
+  "capacity": 25
+}
+
+###
+# Publish event
+POST {{host}}/api/events/{{eventId}}/publish
+Authorization: Bearer {{bearerToken}}
+
+###
+# Cancel event
+POST {{host}}/api/events/{{eventId}}/cancel
+Authorization: Bearer {{bearerToken}}
+
+# -------------------------------------------------------------------------
+# Invitations
+# -------------------------------------------------------------------------
+
+###
+# Send invitation
+# @name sendInvitation
+POST {{host}}/api/events/{{eventId}}/invitations
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "participantEmail": "eh-organizer-dev@globaltradedemo.onmicrosoft.com"
+}
+# After running: copy the returned "id" value into @invitationId above
+
+###
+# Reissue invitation token
+POST {{host}}/api/events/{{eventId}}/invitations/{{invitationId}}/reissue
+Authorization: Bearer {{bearerToken}}
+
+###
+# Respond to invitation — Accept (public, no JWT)
+POST {{host}}/api/invitations/respond
+Content-Type: application/json
+
+{
+  "invitationId": "{{invitationId}}",
+  "rawToken": "{{rawToken}}",
+  "response": "Accept"
+}
+
+###
+# Respond to invitation — Decline (public, no JWT)
+POST {{host}}/api/invitations/respond
+Content-Type: application/json
+
+{
+  "invitationId": "{{invitationId}}",
+  "rawToken": "{{rawToken}}",
+  "response": "Decline"
+}
+
+###
+# Cancel invitation
+DELETE {{host}}/api/events/{{eventId}}/invitations/{{invitationId}}
+Authorization: Bearer {{bearerToken}}
+
+# -------------------------------------------------------------------------
+# Admin
+# -------------------------------------------------------------------------
+
+###
+# Get all events across all organizers
+GET {{host}}/api/admin/events
+Authorization: Bearer {{adminBearerToken}}
+Accept: application/json
+
+###
+# List users (page 1, default page size)
+GET {{host}}/api/admin/users
+Authorization: Bearer {{adminBearerToken}}
+Accept: application/json
+
+###
+# List users — search by name/UPN prefix
+GET {{host}}/api/admin/users?search=manager&pageSize=10
+Authorization: Bearer {{adminBearerToken}}
+Accept: application/json
+
+###
+# Assign Organizer role
+POST {{host}}/api/admin/users/{{targetUserId}}/roles/organizer
+Authorization: Bearer {{adminBearerToken}}
+
+###
+# Remove Organizer role
+DELETE {{host}}/api/admin/users/{{targetUserId}}/roles/organizer
+Authorization: Bearer {{adminBearerToken}}
+
+# -------------------------------------------------------------------------
+# Error cases
+# -------------------------------------------------------------------------
+
+###
+# 401 — no token
+GET {{host}}/api/events
+Accept: application/json
+
+###
+# 403 — organizer token on admin endpoint
+GET {{host}}/api/admin/events
+Authorization: Bearer {{bearerToken}}
+Accept: application/json
+
+###
+# 422 — create event with past date
+POST {{host}}/api/events
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": "Past Event",
+  "description": "Should fail validation",
+  "dateTime": "2020-01-01T10:00:00+00:00",
+  "location": "Room X",
+  "capacity": 10
+}
+
+###
+# 422 — invalid RSVP response value
+POST {{host}}/api/invitations/respond
+Content-Type: application/json
+
+{
+  "invitationId": "{{invitationId}}",
+  "rawToken": "{{rawToken}}",
+  "response": "Maybe"
+}

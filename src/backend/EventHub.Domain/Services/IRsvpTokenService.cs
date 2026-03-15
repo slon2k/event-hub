@@ -2,7 +2,6 @@ namespace EventHub.Domain.Services;
 
 /// <summary>
 /// Generates and validates HMAC-SHA256 signed RSVP tokens for guest participants.
-/// Defined in Domain, implemented in Infrastructure.
 /// </summary>
 public interface IRsvpTokenService
 {

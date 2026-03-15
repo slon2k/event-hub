@@ -29,6 +29,9 @@ param appSettings array = []
 @description('Connection strings (each object requires name, type, value).')
 param connectionStrings array = []
 
+@description('Application Insights connection string for telemetry. Leave empty to disable.')
+param applicationInsightsConnectionString string = ''
+
 @description('Extra tags merged into the defaults.')
 param extraTags object = {}
 
@@ -62,6 +65,14 @@ var defaultAppSettings = union(
         {
           name: 'WEBSITE_RUN_FROM_PACKAGE'
           value: '1'
+        }
+      ]
+    : [],
+  !empty(applicationInsightsConnectionString)
+    ? [
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: applicationInsightsConnectionString
         }
       ]
     : []

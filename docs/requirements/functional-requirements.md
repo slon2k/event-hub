@@ -1,17 +1,17 @@
 # Functional Requirements
 
 | | |
-|---|---|
-| **Status** | Draft |
-| **Date** | 2026-02-23 |
-| **Version** | 0.1 |
+| --- | --- |
+| **Status** | Active |
+| **Date** | 2026-03-14 |
+| **Version** | 0.5 |
 
 ---
 
 ## 1. Actors and Roles
 
 | Role | Account Required | Description |
-|---|---|---|
+| --- | --- | --- |
 | **Admin** | Yes — Entra ID | Platform administrator. Manages user role assignments and has read-only visibility into all events. |
 | **Organizer** | Yes — Entra ID | Authenticated user who creates and manages events and sends invitations to participants. |
 | **Participant** | **No — guest** | External person invited by email. RSVPs via a signed magic link. No account or registration required. |
@@ -24,15 +24,17 @@
 ## 2. Authentication and Authorization
 
 ### Admin and Organizer — Azure Entra ID (JWT Bearer)
+
 - Admin and Organizer endpoints require a valid **Entra ID JWT Bearer token**.
 - Roles (`Admin`, `Organizer`) are defined as **Entra ID App Roles** and conveyed in the token.
 - Unauthenticated requests to protected endpoints return `401 Unauthorized`.
 - Requests by authenticated users to endpoints outside their role return `403 Forbidden`.
 
 ### Participant — Magic Link Token
+
 - Participants **do not require an account**.
 - When an invitation is sent, a short-lived **HMAC-SHA256 signed token** is generated and embedded in the invitation email as a URL.
-- The RSVP endpoint (`PUT /invitations/respond`) is **public** (no Bearer token) and validates the magic link token.
+- The RSVP endpoint (`POST /api/invitations/respond`) is **public** (no Bearer token) and validates the magic link token.
 - Tokens are **single-use**: invalidated immediately after the participant responds.
 - Tokens expire after **72 hours**. An expired token returns `400 Bad Request`.
 - See **ADR 0006** for full token design.
@@ -100,19 +102,27 @@
 ### 4.3 Respond to Invitation (Participant — via Magic Link)
 
 - The invitation email contains a **magic link** embedding the signed RSVP token.
-- The participant clicks the link, which calls `PUT /invitations/respond` with the token and their chosen response.
+- The participant clicks the link, which calls `POST /api/invitations/respond` with the token and their chosen response.
 - Valid responses:
   - **Accept** → status changes to `Accepted`
   - **Decline** → status changes to `Declined`
+- On success, returns `204 No Content`.
 - The token is **single-use**: invalidated immediately after a successful response.
 - If the event has reached capacity and the participant tries to Accept, the action is rejected with `409 Conflict`.
-- An invalid, expired, already-used, or tampered token returns `400 Bad Request`.
-- A participant **cannot change their response after the token is consumed**. To change RSVP, the organizer must cancel the invitation and re-send it.
+- An invalid, expired, not-found, or tampered token returns `400 Bad Request`.
+- An already-used token returns `409 Conflict`.
+- A participant **cannot change their response after the token is consumed**. To change RSVP, the organizer cancels the existing invitation and sends a new one — this creates a clean audit trail and ensures the participant receives a fresh invitation email.
 
-### 4.4 Re-send Invitation (Organizer)
+### 4.4 Reissue Invitation Token (Organizer)
 
-- An Organizer can re-send an invitation to regenerate a fresh token for a participant whose previous token has expired.
-- Re-sending invalidates the old token and generates a new one with a fresh 72-hour expiry.
+- An Organizer can reissue a token for a **Pending** invitation (e.g. the participant's previous token has expired).
+- Endpoint: `POST /api/events/{eventId}/invitations/{invitationId}/reissue`
+- Only the event owner (Organizer) can reissue tokens. Admin cannot reissue.
+- Reissuing invalidates the old token and generates a new one with a fresh 72-hour expiry.
+- On success, returns `204 No Content`.
+- If the invitation is not in `Pending` status (e.g. already `Accepted` or `Declined`), returns `409 Conflict`.
+- If the event or invitation is not found, returns `404 Not Found`.
+- If the caller is not the event owner, returns `403 Forbidden`.
 
 ---
 
@@ -157,14 +167,29 @@
 ## 7. Out of Scope (v1)
 
 | Feature | Notes |
-|---|---|
+| --- | --- |
 | Attendance tracking | Tracking who physically attended vs. who RSVP'd |
 | Waitlists | Auto-promoting participants if an accepted RSVP is withdrawn |
 | Recurring events | Every event is a one-off |
 | Public event registration | All events are invite-only |
 | In-app notifications / real-time updates | Email only in v1 |
 | Re-notifying participants on event update | Only cancellation triggers a notification in v1 |
-| RSVP change after token consumed | Organizer must re-send the invitation; self-service change planned for v2 |
-| Magic link re-issue by participant | Organizer re-sends in v1; participant self-service re-issue endpoint planned for v2 |
+| RSVP change after token consumed | By design: Organizer cancels the existing invitation and sends a new one. Participant self-service RSVP change planned for v2. |
+| Magic link re-issue by participant | Organizer reissues token in v1 (`POST /api/events/{eventId}/invitations/{invitationId}/reissue`); participant self-service planned for v2 |
 | Participant account / Entra External Identities | Participants are guests in v1; optional account upgrade planned for v2 |
-| Frontend UI | API-only in v1; React frontend planned for v2 |
+| Frontend UI | API-only in v1; web frontend planned for v2 |
+
+---
+
+## 8. Change Log
+
+| Date | Change |
+| --- | --- |
+| 2026-03-14 | Bumped to v0.5; closed issue #30 — `GET /api/events` now accepts optional `?status=` query parameter (`Draft` \| `Published` \| `Cancelled`); unknown values return `422` |
+| 2026-03-13 | Bumped to v0.4; closed issue #31 — `EventSummaryDto` now includes `DeclinedCount` and `TotalInvited` completing the §3.5 RSVP summary |
+| 2026-03-09 | Promoted status to Active, bumped to v0.3; added issues #30 (status filter) and #31 (RSVP summary counts) to track §3.5 gaps |
+| 2026-03-08 | Split RSVP token errors: invalid/expired/not-found → `400 Bad Request`; already-used → `409 Conflict` |
+| 2026-03-08 | Added `204 No Content` as RSVP success response |
+| 2026-03-08 | Renamed §4.4 from "Re-send Invitation" to "Reissue Invitation Token"; added endpoint path, response codes, and constraint that only Pending invitations can be reissued |
+| 2026-03-08 | Clarified Admin cannot reissue tokens (read-only scope for invitations/events) |
+| 2026-03-08 | Reframed RSVP change flow as intentional design: cancel + new invitation creates clean audit trail |

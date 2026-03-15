@@ -28,15 +28,15 @@ public sealed class RespondToInvitationCommandHandler(
             .FirstOrDefaultAsync(
                 e => e.Invitations.Any(i => i.Id == command.InvitationId),
                 cancellationToken)
-            ?? throw new NotFoundException("Invitation", command.InvitationId);
+            ?? throw new InvalidTokenException("The invitation token is invalid or not found.");
 
         var invitation = ev.Invitations.Single(i => i.Id == command.InvitationId);
 
         if (invitation.RsvpTokenHash is null || invitation.RsvpTokenExpiresAt is null)
-            throw new Domain.Common.DomainException("This invitation token has already been used or cancelled.");
+            throw new Domain.Common.DomainException("This invitation token has already been used.");
 
         if (!tokenService.IsValid(command.RawToken, invitation.RsvpTokenHash, invitation.RsvpTokenExpiresAt.Value))
-            throw new Domain.Common.DomainException("The invitation token is invalid or has expired.");
+            throw new InvalidTokenException("The invitation token is invalid or has expired.");
 
         if (command.Response == InvitationResponse.Accept)
             ev.AcceptInvitation(command.InvitationId);

@@ -49,7 +49,6 @@ namespace EventHub.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("EventHub.Domain.Entities.Event", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("Capacity")
@@ -95,7 +94,6 @@ namespace EventHub.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("EventHub.Domain.Entities.Invitation", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("EventId")
@@ -136,7 +134,6 @@ namespace EventHub.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("EventHub.Domain.Entities.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTimeOffset>("CreatedAt")

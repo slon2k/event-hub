@@ -38,18 +38,59 @@ param sqlDatabaseName string
 @description('SQL administrator username.')
 param sqlAdminUser string = 'sqladmin'
 
+@secure()
+@description('SQL administrator password. Must be supplied at deploy time — do not store in source control.')
+param sqlAdminPassword string
+
+@secure()
+@description('Entra ID tenant ID for the identity tenant (Graph calls). Supplied via GRAPH_TENANT_ID GitHub environment secret.')
+param graphTenantId string = ''
+
+@secure()
+@description('Graph client app registration ID in the identity tenant. Supplied via GRAPH_CLIENT_ID GitHub environment secret.')
+param graphClientId string = ''
+
+@secure()
+@description('Graph client secret. Supplied via GRAPH_CLIENT_SECRET GitHub environment secret.')
+param graphClientSecret string = ''
+
+@description('SQL database SKU. Use { name: "Basic", tier: "Basic" } for dev/test or { name: "S0", tier: "Standard" } for prod. Ignored when useFreeLimit is true.')
+param sqlDatabaseSku object = { name: 'Basic', tier: 'Basic' }
+
+@description('Use the Azure SQL free offer (up to 10 free databases per subscription). Provisions GP Serverless Gen5 2 vCores.')
+param useFreeLimit bool = false
+
+@description('Behaviour when the free limit is exhausted: AutoPause or BillOverUsage.')
+@allowed(['AutoPause', 'BillOverUsage'])
+param freeLimitExhaustionBehavior string = 'AutoPause'
+
+@description('Additional app settings for the Azure Functions app as an array of {name, value} objects.')
+param functionAppSettings array = []
+
+@description('Enable Key Vault purge protection. Irreversible once set. Set true for prod to prevent permanent secret loss.')
+param enablePurgeProtection bool = false
+
+@description('Name of the Azure Service Bus namespace.')
+param serviceBusNamespaceName string = toLower('${take(baseName, 8)}-${environment}-sb-${take(uniqueString(resourceGroup().id), 6)}')
+
 @description('Name of the Key Vault.')
 // Simpler, unique, and more readable Key Vault name: baseName-env-kv-xxxxxx
 param keyVaultName string = toLower('${take(baseName, 8)}-${environment}-kv-${take(uniqueString(resourceGroup().id), 6)}')
 
-// ── Variables ─────────────────────────────────────────────────────────────────
-
-// Deterministic password derived from the resource group — stable across re-deployments
-// and never stored in source control. It is written to Key Vault on every deploy.
-var sqlPasswordSalt = 'sql-admin'
-var sqlAdminPasswordGenerated = 'P${uniqueString(resourceGroup().id, sqlPasswordSalt)}Qq1!'
-
 // ── Modules ──────────────────────────────────────────────────────────────────
+
+// Build the Key Vault URI from the deterministic vault name.
+// This avoids a circular dependency between the api and keyVault modules.
+// Note: az.environment().suffixes.keyvaultDns already includes a leading dot (e.g. ".vault.azure.net").
+var kvBaseUri = 'https://${keyVaultName}${az.environment().suffixes.keyvaultDns}/'
+
+// Pre-computed versionless Key Vault secret URIs (trailing / = always-current version).
+// Used by both the API and the Functions app so neither depends on keyVault module outputs.
+var sqlConnectionStringSecretUri        = '${kvBaseUri}secrets/sql-connection-string/'
+var serviceBusConnectionStringSecretUri = '${kvBaseUri}secrets/servicebus-connection-string/'
+
+// Storage account name: <=24 chars, lowercase alphanumeric only.
+var storageAccountName = toLower('${take(replace(baseName, '-', ''), 8)}${environment}${take(uniqueString(resourceGroup().id), 8)}')
 
 module plan 'modules/appServicePlan.bicep' = {
   name: 'appServicePlan'
@@ -63,6 +104,28 @@ module plan 'modules/appServicePlan.bicep' = {
   }
 }
 
+module sql 'modules/sql.bicep' = {
+  name: 'sql'
+  params: {
+    sqlServerName: sqlServerName
+    sqlDbName: sqlDatabaseName
+    sqlAdminPassword: sqlAdminPassword
+    sqlAdminUser: sqlAdminUser
+    location: location
+    databaseSku: sqlDatabaseSku
+    useFreeLimit: useFreeLimit
+    freeLimitExhaustionBehavior: freeLimitExhaustionBehavior
+    extraTags: extraTags
+  }
+}
+
+var sqlConnectionString = 'Server=tcp:${sql.outputs.sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};User ID=${sqlAdminUser};Password=${sqlAdminPassword};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+var sqlConnectionStringKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/sql-connection-string/)'
+var serviceBusConnectionStringKvRef = '@Microsoft.KeyVault(SecretUri=${serviceBusConnectionStringSecretUri})'
+var graphTenantIdKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/graph-tenant-id/)'
+var graphClientIdKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/graph-client-id/)'
+var graphClientSecretKvRef = '@Microsoft.KeyVault(SecretUri=${kvBaseUri}secrets/graph-client-secret/)'
+
 module api 'modules/appService.bicep' = {
   name: 'appService'
   params: {
@@ -72,20 +135,88 @@ module api 'modules/appService.bicep' = {
     appServicePlanId: plan.outputs.appServicePlanId
     linuxFxVersion: linuxFxVersion
     alwaysOn: skuName != 'F1'
-    appSettings: appSettings
-    connectionStrings: connectionStrings
+    appSettings: concat(appSettings, [
+      {
+        name: 'KeyVault__Uri'
+        value: kvBaseUri
+      }
+      {
+        // Enables the ServiceBusOutboxNotifier in Infrastructure so the API sends
+        // a wake-up ping to the outbox-trigger queue after each domain save.
+        name: 'ServiceBusConnectionString'
+        value: serviceBusConnectionStringKvRef
+      }
+      {
+        name: 'ServiceBus__OutboxTriggerQueueName'
+        value: 'outbox-trigger'
+      }
+      {
+        name: 'Graph__TenantId'
+        value: graphTenantIdKvRef
+      }
+      {
+        name: 'Graph__ClientId'
+        value: graphClientIdKvRef
+      }
+      {
+        name: 'Graph__ClientSecret'
+        value: graphClientSecretKvRef
+      }
+    ])
+    applicationInsightsConnectionString: appInsights.outputs.connectionString
+    connectionStrings: concat(connectionStrings, [
+      {
+        name: 'DefaultConnection'
+        type: 'SQLAzure'
+        value: sqlConnectionStringKvRef
+      }
+    ])
     extraTags: extraTags
   }
 }
 
-module sql 'modules/sql.bicep' = {
-  name: 'sql'
+module serviceBus 'modules/serviceBus.bicep' = {
+  name: 'serviceBus'
   params: {
-    sqlServerName: sqlServerName
-    sqlDbName: sqlDatabaseName
-    sqlAdminUser: sqlAdminUser
-    sqlAdminPassword: sqlAdminPasswordGenerated
+    namespaceName: serviceBusNamespaceName
     location: location
+    extraTags: extraTags
+  }
+}
+
+module storage 'modules/storageAccount.bicep' = {
+  name: 'storageAccount'
+  params: {
+    storageAccountName: storageAccountName
+    location: location
+    functionAppPrincipalIds: [functionApp.outputs.functionAppPrincipalId]
+    extraTags: extraTags
+  }
+}
+
+module appInsights 'modules/applicationInsights.bicep' = {
+  name: 'applicationInsights'
+  params: {
+    baseName: baseName
+    environment: environment
+    location: location
+    extraTags: extraTags
+  }
+}
+
+module functionApp 'modules/functionApp.bicep' = {
+  name: 'functionApp'
+  params: {
+    baseName: baseName
+    environment: environment
+    location: location
+    keyVaultUri: kvBaseUri
+    serviceBusConnectionStringSecretUri: serviceBusConnectionStringSecretUri
+    sqlConnectionStringSecretUri: sqlConnectionStringSecretUri
+    storageAccountName: storageAccountName
+    appSettings: functionAppSettings
+    applicationInsightsConnectionString: appInsights.outputs.connectionString
+    extraTags: extraTags
   }
 }
 
@@ -94,16 +225,24 @@ module keyVault 'modules/keyVault.bicep' = {
   params: {
     keyVaultName: keyVaultName
     location: location
-    secrets: {
-      'sql-admin-password': sqlAdminPasswordGenerated
-    }
+    enablePurgeProtection: enablePurgeProtection
+    secretsUserPrincipalIds: [api.outputs.webAppPrincipalId, functionApp.outputs.functionAppPrincipalId]
+    secrets: union(
+      {
+        'sql-connection-string': sqlConnectionString
+        'servicebus-connection-string': serviceBus.outputs.primaryConnectionString
+      },
+      !empty(graphTenantId) ? { 'graph-tenant-id': graphTenantId } : {},
+      !empty(graphClientId) ? { 'graph-client-id': graphClientId } : {},
+      !empty(graphClientSecret) ? { 'graph-client-secret': graphClientSecret } : {}
+    )
   }
 }
 
 
 // ── Variables for Outputs ─────────────────────────────────────────────────────
 
-var sqlAdminPasswordSecretObj = filter(keyVault.outputs.secretUris, s => s.name == 'sql-admin-password')
+var sqlConnectionStringSecretObj = filter(keyVault.outputs.secretUris, s => s.name == 'sql-connection-string')
 
 output appServicePlanName string = plan.outputs.appServicePlanName
 output appServicePlanId string = plan.outputs.appServicePlanId
@@ -116,4 +255,11 @@ output sqlDatabaseName string = sql.outputs.sqlDbName
 output sqlServerFqdn string = sql.outputs.sqlServerFqdn
 output keyVaultName string = keyVault.outputs.keyVaultName
 output keyVaultUri string = keyVault.outputs.keyVaultUri
-output sqlAdminPasswordSecretUri string = length(sqlAdminPasswordSecretObj) > 0 ? sqlAdminPasswordSecretObj[0].uri : ''
+#disable-next-line outputs-should-not-contain-secrets
+output sqlConnectionStringSecretUri string = length(sqlConnectionStringSecretObj) > 0 ? sqlConnectionStringSecretObj[0].uri : ''
+output serviceBusNamespaceName string = serviceBus.outputs.namespaceName
+output serviceBusTopicName string = serviceBus.outputs.topicName
+output storageAccountName string = storage.outputs.storageAccountName
+output functionAppName string = functionApp.outputs.functionAppName
+output functionAppDefaultHostName string = functionApp.outputs.functionAppDefaultHostName
+output appInsightsName string = appInsights.outputs.appInsightsName

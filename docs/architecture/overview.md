@@ -1,7 +1,7 @@
 # Architecture Overview
 
 | | |
-|---|---|
+| --- | --- |
 | **Status** | Draft |
 | **Date** | 2026-02-23 |
 | **Version** | 0.1 |
@@ -10,14 +10,14 @@
 
 ## 1. System Context
 
-EventHub is a small-scale, invite-only event management platform built as a training application demonstrating production-grade architectural patterns. It exposes a REST API consumed initially by HTTP clients, with a React frontend planned for v2.
+EventHub is a small-scale, invite-only event management platform built with production-grade architectural patterns. It exposes a REST API consumed initially by HTTP clients, with a web frontend planned for v2.
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────┐
 │                         External                                  │
 │                                                                   │
 │  HTTP Client          Azure Entra ID         ACS Email           │
-│  (Postman / React)    (Auth / Roles)         (Delivery)          │
+│  (Postman / Browser)  (Auth / Roles)         (Delivery)          │
 └───────┬──────────────────────┬──────────────────────┬────────────┘
         │ HTTPS                │ JWT validation        │ REST
         ▼                      ▼                       ▼
@@ -65,7 +65,7 @@ EventHub is a small-scale, invite-only event management platform built as a trai
 ## 2. Technology Stack
 
 | Layer | Technology | Notes |
-|---|---|---|
+| --- | --- | --- |
 | API | ASP.NET Core 10, Minimal APIs | Hosted on Azure App Service |
 | Auth (Admin/Organizer) | Azure Entra ID, JWT Bearer | App Roles: `Admin`, `Organizer` |
 | Auth (Participant) | HMAC-SHA256 Magic Link token | Single-use, 72h expiry, public endpoint — see ADR 0006 |
@@ -84,7 +84,7 @@ EventHub is a small-scale, invite-only event management platform built as a trai
 
 ## 3. Solution Structure
 
-```
+```text
 src/
   backend/
     EventHub.Api/              ← HTTP entry point, DI composition root
@@ -93,7 +93,7 @@ src/
     EventHub.Infrastructure/   ← EF Core, Repositories, Outbox, Email stub
   notifications/
     EventHub.Notifications/    ← Azure Functions (Timer + ServiceBus triggers)
-  frontend/                    ← React app (v2, placeholder)
+  frontend/                    ← Web frontend (v2, placeholder)
 
 tests/
   EventHub.Domain.UnitTests/
@@ -119,6 +119,7 @@ docs/
 ## 4. Layer Responsibilities
 
 ### EventHub.Domain
+
 - **Entities and Aggregates**: `Event`, `Invitation`, `ApplicationUser`
 - **Value Objects**: `EventStatus`, `InvitationStatus`
 - **Domain Events**: `EventCancelled`, `InvitationSent`, `InvitationResponded`
@@ -126,6 +127,7 @@ docs/
 - No dependency on any infrastructure or application framework.
 
 ### EventHub.Application
+
 - **Commands** and **Queries** (MediatR `IRequest<T>`)
 - **Handlers**: one handler per command/query, one responsibility
 - **Domain Event Handlers**: react to domain events raised by aggregates for application-level side-effects (e.g. sending notifications)
@@ -134,6 +136,7 @@ docs/
 - No dependency on EF Core SQL Server provider, Azure SDKs, or HTTP.
 
 ### EventHub.Infrastructure
+
 - **`EventHubDbContext`** implementing `IApplicationDbContext`; all EF Core Fluent API entity configurations
 - **Outbox dispatch**: `SaveChangesAsync` override collects domain events from tracked `AggregateRoot` instances and persists them as `OutboxMessage` rows in the same transaction as the domain change
 - **`RsvpTokenService`**: HMAC-SHA256 token generation and validation
@@ -141,12 +144,14 @@ docs/
 - No business logic.
 
 ### EventHub.Api
+
 - **Minimal API endpoint groups**: map HTTP verbs to MediatR commands/queries
 - **DI registration**: wires all layers together
 - **Middleware**: exception handling, authentication, authorisation
 - **appsettings**: connection strings, Service Bus config (env-specific via App Service config)
 
 ### EventHub.Notifications (Azure Functions)
+
 - **`ProcessOutboxFunction`** (Timer trigger, every 10s): reads unpublished `OutboxMessage` rows, publishes to Service Bus topic, marks as published.
 - **`SendEmailFunction`** (ServiceBus trigger, subscription `email`): receives message, calls ACS Email.
 - Has its own DI setup and `host.json`; shares domain message contracts via a shared models assembly or NuGet package (v2).
@@ -156,7 +161,7 @@ docs/
 ## 5. Key Architectural Patterns
 
 | Pattern | Where Applied | Why |
-|---|---|---|
+| --- | --- | --- |
 | Clean Architecture / Layered | Entire solution | Separation of concerns, testability |
 | CQRS | Application layer | Separate read/write models, scalability |
 | MediatR | Application layer | Decoupled handlers, pipeline behaviours |
@@ -170,7 +175,7 @@ docs/
 ## 6. Cross-Cutting Concerns
 
 | Concern | Approach |
-|---|---|
+| --- | --- |
 | Validation | FluentValidation + MediatR `ValidationBehaviour` pipeline |
 | Error handling | Global exception middleware, Problem Details (RFC 7807) |
 | Logging | `ILogger<T>`, structured logging to Application Insights |

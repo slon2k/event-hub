@@ -188,6 +188,24 @@ public class EventTests
             Assert.Throws<DomainException>(() =>
                 ev.Update("Title", null, DateTimeOffset.UtcNow.AddMinutes(-1), null, null));
         }
+
+        [Fact]
+        public void WithZeroCapacity_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+
+            Assert.Throws<DomainException>(() =>
+                ev.Update("Title", null, DateTimeOffset.UtcNow.AddDays(1), null, 0));
+        }
+
+        [Fact]
+        public void WithNegativeCapacity_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+
+            Assert.Throws<DomainException>(() =>
+                ev.Update("Title", null, DateTimeOffset.UtcNow.AddDays(1), null, -5));
+        }
     }
 
     // ── Cancel ────────────────────────────────────────────────────────────────
@@ -458,6 +476,77 @@ public class EventTests
 
             Assert.Throws<DomainException>(() => ev.AcceptInvitation(invitationId));
         }
+
+        [Fact]
+        public void WhenDeclinedInvitation_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+            var (rawToken, tokenHash, expiresAt) = FakeToken();
+            ev.AddInvitation("alice@example.com", rawToken, tokenHash, expiresAt);
+            var invitationId = ev.Invitations.First().Id;
+            ev.DeclineInvitation(invitationId);
+            ev.ClearDomainEvents();
+
+            Assert.Throws<DomainException>(() => ev.AcceptInvitation(invitationId));
+        }
+
+        [Fact]
+        public void WhenCancelledInvitation_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+            var (rawToken, tokenHash, expiresAt) = FakeToken();
+            ev.AddInvitation("alice@example.com", rawToken, tokenHash, expiresAt);
+            var invitationId = ev.Invitations.First().Id;
+            ev.CancelInvitation(invitationId);
+            ev.ClearDomainEvents();
+
+            Assert.Throws<DomainException>(() => ev.AcceptInvitation(invitationId));
+        }
+
+        [Fact]
+        public void WhenEventCancelled_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+            var (rawToken, tokenHash, expiresAt) = FakeToken();
+            ev.AddInvitation("alice@example.com", rawToken, tokenHash, expiresAt);
+            var invitationId = ev.Invitations.First().Id;
+            ev.Cancel();
+            ev.ClearDomainEvents();
+
+            Assert.Throws<DomainException>(() => ev.AcceptInvitation(invitationId));
+        }
+
+        [Fact]
+        public void WithNullCapacity_CanAcceptMultiple()
+        {
+            var ev = CreatePublishedEvent(capacity: null);
+            var (rawToken, tokenHash, expiresAt) = FakeToken();
+            ev.AddInvitation("alice@example.com", rawToken, tokenHash, expiresAt);
+            ev.AddInvitation("bob@example.com", rawToken + "2", tokenHash + "2", expiresAt);
+            ev.AddInvitation("carol@example.com", rawToken + "3", tokenHash + "3", expiresAt);
+
+            // Should not throw — unlimited capacity
+            ev.AcceptInvitation(ev.Invitations.First(i => i.ParticipantEmail == "alice@example.com").Id);
+            ev.AcceptInvitation(ev.Invitations.First(i => i.ParticipantEmail == "bob@example.com").Id);
+            ev.AcceptInvitation(ev.Invitations.First(i => i.ParticipantEmail == "carol@example.com").Id);
+
+            Assert.Equal(3, ev.Invitations.Count(i => i.Status == InvitationStatus.Accepted));
+        }
+
+        [Fact]
+        public void SetsRespondedAt()
+        {
+            var ev = CreatePublishedEvent();
+            var (rawToken, tokenHash, expiresAt) = FakeToken();
+            ev.AddInvitation("alice@example.com", rawToken, tokenHash, expiresAt);
+            var invitationId = ev.Invitations.First().Id;
+            var before = DateTimeOffset.UtcNow;
+
+            ev.AcceptInvitation(invitationId);
+
+            Assert.NotNull(ev.Invitations.First().RespondedAt);
+            Assert.True(ev.Invitations.First().RespondedAt >= before);
+        }
     }
 
     // ── DeclineInvitation ─────────────────────────────────────────────────────
@@ -520,6 +609,55 @@ public class EventTests
 
             Assert.Throws<DomainException>(() => ev.DeclineInvitation(invitationId));
         }
+
+        [Fact]
+        public void WithNonExistentInvitationId_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+
+            Assert.Throws<DomainException>(() => ev.DeclineInvitation(Guid.NewGuid()));
+        }
+
+        [Fact]
+        public void WhenAccepted_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+            var (rawToken, tokenHash, expiresAt) = FakeToken();
+            ev.AddInvitation("alice@example.com", rawToken, tokenHash, expiresAt);
+            var invitationId = ev.Invitations.First().Id;
+            ev.AcceptInvitation(invitationId);
+            ev.ClearDomainEvents();
+
+            Assert.Throws<DomainException>(() => ev.DeclineInvitation(invitationId));
+        }
+
+        [Fact]
+        public void WhenEventCancelled_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+            var (rawToken, tokenHash, expiresAt) = FakeToken();
+            ev.AddInvitation("alice@example.com", rawToken, tokenHash, expiresAt);
+            var invitationId = ev.Invitations.First().Id;
+            ev.Cancel();
+            ev.ClearDomainEvents();
+
+            Assert.Throws<DomainException>(() => ev.DeclineInvitation(invitationId));
+        }
+
+        [Fact]
+        public void SetsRespondedAt()
+        {
+            var ev = CreatePublishedEvent();
+            var (rawToken, tokenHash, expiresAt) = FakeToken();
+            ev.AddInvitation("alice@example.com", rawToken, tokenHash, expiresAt);
+            var invitationId = ev.Invitations.First().Id;
+            var before = DateTimeOffset.UtcNow;
+
+            ev.DeclineInvitation(invitationId);
+
+            Assert.NotNull(ev.Invitations.First().RespondedAt);
+            Assert.True(ev.Invitations.First().RespondedAt >= before);
+        }
     }
 
     // ── CancelInvitation ──────────────────────────────────────────────────────
@@ -580,6 +718,27 @@ public class EventTests
 
             Assert.Throws<DomainException>(() => ev.CancelInvitation(invitationId));
         }
+
+        [Fact]
+        public void WithNonExistentInvitationId_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+
+            Assert.Throws<DomainException>(() => ev.CancelInvitation(Guid.NewGuid()));
+        }
+
+        [Fact]
+        public void WhenDeclined_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+            var (rawToken, tokenHash, expiresAt) = FakeToken();
+            ev.AddInvitation("alice@example.com", rawToken, tokenHash, expiresAt);
+            var invitationId = ev.Invitations.First().Id;
+            ev.DeclineInvitation(invitationId);
+            ev.ClearDomainEvents();
+
+            Assert.Throws<DomainException>(() => ev.CancelInvitation(invitationId));
+        }
     }
 
     // ── ReissueInvitationToken ────────────────────────────────────────────────
@@ -614,6 +773,57 @@ public class EventTests
             ev.AddInvitation("alice@example.com", rawToken, tokenHash, expiresAt);
             var invitationId = ev.Invitations.First().Id;
             ev.AcceptInvitation(invitationId);
+
+            Assert.Throws<DomainException>(() =>
+                ev.ReissueInvitationToken(invitationId, "new-raw", "new-hash", DateTimeOffset.UtcNow.AddHours(72)));
+        }
+
+        [Fact]
+        public void WhenDeclined_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+            var (rawToken, tokenHash, expiresAt) = FakeToken();
+            ev.AddInvitation("alice@example.com", rawToken, tokenHash, expiresAt);
+            var invitationId = ev.Invitations.First().Id;
+            ev.DeclineInvitation(invitationId);
+            ev.ClearDomainEvents();
+
+            Assert.Throws<DomainException>(() =>
+                ev.ReissueInvitationToken(invitationId, "new-raw", "new-hash", DateTimeOffset.UtcNow.AddHours(72)));
+        }
+
+        [Fact]
+        public void WhenCancelledInvitation_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+            var (rawToken, tokenHash, expiresAt) = FakeToken();
+            ev.AddInvitation("alice@example.com", rawToken, tokenHash, expiresAt);
+            var invitationId = ev.Invitations.First().Id;
+            ev.CancelInvitation(invitationId);
+            ev.ClearDomainEvents();
+
+            Assert.Throws<DomainException>(() =>
+                ev.ReissueInvitationToken(invitationId, "new-raw", "new-hash", DateTimeOffset.UtcNow.AddHours(72)));
+        }
+
+        [Fact]
+        public void WithNonExistentInvitationId_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+
+            Assert.Throws<DomainException>(() =>
+                ev.ReissueInvitationToken(Guid.NewGuid(), "new-raw", "new-hash", DateTimeOffset.UtcNow.AddHours(72)));
+        }
+
+        [Fact]
+        public void WhenEventCancelled_ThrowsDomainException()
+        {
+            var ev = CreatePublishedEvent();
+            var (rawToken, tokenHash, expiresAt) = FakeToken();
+            ev.AddInvitation("alice@example.com", rawToken, tokenHash, expiresAt);
+            var invitationId = ev.Invitations.First().Id;
+            ev.Cancel();
+            ev.ClearDomainEvents();
 
             Assert.Throws<DomainException>(() =>
                 ev.ReissueInvitationToken(invitationId, "new-raw", "new-hash", DateTimeOffset.UtcNow.AddHours(72)));

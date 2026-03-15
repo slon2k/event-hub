@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/" />
+  <Folder Name="/src/notifications/">
+    <Project Path="src/notifications/EventHub.Notifications/EventHub.Notifications.csproj" />
+  </Folder>
   <Folder Name="/src/backend/">
     <Project Path="src/backend/EventHub.Api/EventHub.Api.csproj" />
     <Project Path="src/backend/EventHub.Application/EventHub.Application.csproj" />
@@ -7,10 +10,13 @@
     <Project Path="src/backend/EventHub.Infrastructure/EventHub.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/EventHub.Api.E2ETests/EventHub.Api.E2ETests.csproj" />
     <Project Path="tests/EventHub.Api.FunctionalTests/EventHub.Api.FunctionalTests.csproj" />
     <Project Path="tests/EventHub.Application.UnitTests/EventHub.Application.UnitTests.csproj" />
     <Project Path="tests/EventHub.Domain.UnitTests/EventHub.Domain.UnitTests.csproj" />
     <Project Path="tests/EventHub.Infrastructure.IntegrationTests/EventHub.Infrastructure.IntegrationTests.csproj" />
     <Project Path="tests/EventHub.Infrastructure.UnitTests/EventHub.Infrastructure.UnitTests.csproj" />
+    <Project Path="tests/EventHub.Notifications.IntegrationTests/EventHub.Notifications.IntegrationTests.csproj" />
+    <Project Path="tests/EventHub.Notifications.UnitTests/EventHub.Notifications.UnitTests.csproj" />
   </Folder>
 </Solution>

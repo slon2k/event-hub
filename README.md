@@ -1,17 +1,17 @@
 # EventHub
 
-A training application demonstrating production-grade patterns at small scale: a simple invite-only event management system built with .NET 10, Clean Architecture, CQRS, the Outbox pattern, Azure Service Bus, and Azure Functions.
+A small-scale, invite-only event management platform built with .NET 10, Clean Architecture, CQRS, the Outbox pattern, Azure Service Bus, and Azure Functions.
 
 ## What It Demonstrates
 
 | Pattern / Technology | Where |
-|---|---|
+| --- | --- |
 | Clean Architecture (Domain / Application / Infrastructure / API) | `src/backend/` |
 | CQRS with MediatR | `EventHub.Application` |
 | Rich Domain Model with Domain Events | `EventHub.Domain` |
 | Outbox Pattern (reliable messaging, no dual-write) | `EventHub.Infrastructure` + `EventHub.Notifications` |
 | Azure Service Bus (Topics + Subscriptions) | Notification pipeline |
-| Azure Functions (Timer trigger + ServiceBus trigger) | `src/notifications/EventHub.Notifications` |
+| Azure Functions (ServiceBusTrigger on-demand + 2h fallback TimerTrigger) | `src/notifications/EventHub.Notifications` |
 | Azure Communication Services Email | Transactional email delivery |
 | Azure Entra ID (JWT Bearer + App Roles) | Authentication & Authorization |
 | Infrastructure as Code (Azure Bicep) | `infra/bicep/` |
@@ -19,11 +19,12 @@ A training application demonstrating production-grade patterns at small scale: a
 
 ## Repository Structure
 
-```
+```text
 ├── .github/
 │   └── workflows/
 │       ├── deploy-api.yml          # Build, test and deploy the API
-│       └── deploy-infra.yml        # Deploy Azure infrastructure
+│       ├── deploy-infra.yml        # Deploy Azure infrastructure
+│       └── deploy-notifications.yml # Build, test and deploy Azure Functions
 ├── docs/
 │   ├── requirements/
 │   │   └── functional-requirements.md
@@ -46,24 +47,56 @@ A training application demonstrating production-grade patterns at small scale: a
 │   └── notifications/
 │       └── EventHub.Notifications/ # Azure Functions (Timer + ServiceBus)
 └── tests/
+    ├── EventHub.Api.E2ETests/
     ├── EventHub.Api.FunctionalTests/
     ├── EventHub.Application.UnitTests/
     ├── EventHub.Domain.UnitTests/
-    └── EventHub.Infrastructure.IntegrationTests/
+    ├── EventHub.Infrastructure.IntegrationTests/
+    ├── EventHub.Infrastructure.UnitTests/
+    ├── EventHub.Notifications.IntegrationTests/
+    └── EventHub.Notifications.UnitTests/
 ```
 
 ## Getting Started
 
 See [docs/operations/local-development.md](docs/operations/local-development.md) for full setup instructions including Docker, Entra ID config, Service Bus, and test data seeding.
 
+For API endpoint testing with VS Code request files, see the `.http` section in [Local Development](docs/operations/local-development.md).
+
 ### Quick start (API only)
 
 ```bash
 dotnet restore
-# Start SQL Server in Docker first — see local-development.md §2
+# Start SQL Server via a Docker-compatible runtime first — see local-development.md §2
 dotnet ef database update --project src/backend/EventHub.Infrastructure --startup-project src/backend/EventHub.Api
 dotnet run --project src/backend/EventHub.Api
 ```
+
+### Local auth quick start (user-jwts)
+
+For local development, the API supports `Authentication:Mode = DevJwt` in `appsettings.Development.json`.
+This lets you test protected endpoints without Azure Entra ID.
+
+1. Generate an organizer token:
+
+```bash
+dotnet user-jwts create --project src/backend/EventHub.Api --role Organizer --claim "oid=dev-user-1" --output token
+```
+
+1. Call a protected endpoint with that token:
+
+```bash
+curl -H "Authorization: Bearer <PASTE_TOKEN_HERE>" http://localhost:5165/api/events
+```
+
+Useful token commands:
+
+```bash
+dotnet user-jwts list --project src/backend/EventHub.Api
+dotnet user-jwts remove --project src/backend/EventHub.Api --all
+```
+
+When you switch to real Entra ID integration, set `Authentication:Mode` to `AzureAd` and configure `AzureAd:Authority` + `AzureAd:Audience`.
 
 ### Run Azure Functions locally
 
@@ -79,34 +112,39 @@ See [infra/README.md](infra/README.md) or the [deployment runbook](docs/operatio
 ## CI/CD
 
 | Workflow | Trigger | Target |
-|---|---|---|
+| --- | --- | --- |
 | Deploy Infrastructure | Push to `development` | dev |
 | Deploy Infrastructure | Push to `master` | test |
 | Deploy Infrastructure | Manual | prod |
 | Deploy API | Push to `development` | dev |
 | Deploy API | Push to `master` | test |
 | Deploy API | Manual (master only) | prod |
+| Deploy Notifications | Push to `development` | dev |
+| Deploy Notifications | Push to `master` | test |
+| Deploy Notifications | Manual | prod |
 
 Authentication to Azure uses OIDC — no long-lived secrets stored in GitHub.
 
 ## Documentation
 
 | Document | Description |
-|---|---|
+| --- | --- |
 | [Functional Requirements](docs/requirements/functional-requirements.md) | Actors, features, out-of-scope items |
 | [Architecture Overview](docs/architecture/overview.md) | System diagram, tech stack, layer responsibilities |
 | [Domain Model](docs/architecture/domain-model.md) | Entities, aggregates, domain events, enumerations |
 | [Notification Flow](docs/architecture/notification-flow.md) | Outbox → Service Bus → Functions → ACS Email |
+| [Frontend Architecture](docs/architecture/frontend-architecture.md) | Blazor WASM structure, auth, pages, deployment |
 | [Local Development](docs/operations/local-development.md) | Prerequisites, setup, running tests |
 | [Deployment Runbook](docs/operations/deployment.md) | Manual and automated deployment steps |
 
 ## Architecture Decisions
 
 | # | Decision |
-|---|---|
+| --- | --- |
 | [ADR 0001](docs/architecture/adr/0001-infrastructure-as-code.md) | Infrastructure as Code with Azure Bicep |
 | [ADR 0002](docs/architecture/adr/0002-cqrs-mediatr.md) | CQRS with MediatR |
 | [ADR 0003](docs/architecture/adr/0003-outbox-pattern.md) | Outbox Pattern for Reliable Messaging |
 | [ADR 0004](docs/architecture/adr/0004-azure-service-bus.md) | Azure Service Bus over Azure Storage Queues |
 | [ADR 0005](docs/architecture/adr/0005-azure-entra-id.md) | Azure Entra ID for Authentication and Authorization |
 | [ADR 0006](docs/architecture/adr/0006-magic-link-guest-participants.md) | Magic Link (Tokenized RSVP) for Guest Participants |
+| [ADR 0007](docs/architecture/adr/0007-blazor-wasm-frontend.md) | Blazor WebAssembly for the Web Frontend |

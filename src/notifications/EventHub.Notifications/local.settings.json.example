@@ -1,0 +1,39 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+
+    // --- Service Bus ---
+    // Full connection string for the Azure Service Bus namespace (Standard tier or higher).
+    // Create a shared dev namespace in Azure and retrieve the connection string via the Azure portal
+    // or: az servicebus namespace authorization-rule keys list ...
+    "ServiceBusConnectionString": "<your-sb-connection-string>",
+    "ServiceBusTopicName": "notifications",
+    "ServiceBusSubscriptionName": "email",
+
+    // --- Outbox processing ---
+    // Fallback timer: every 2 hours. Format: {second} {minute} {hour} {day} {month} {day-of-week}
+    // Primary processing is driven by the outbox-trigger queue (ServiceBusTrigger on RunOnDemand).
+    "OutboxTimerCronExpression": "0 0 */2 * * *",
+    // Queue that the API drops a wake-up ping into after every domain save.
+    "OutboxTriggerQueueName": "outbox-trigger",
+
+    // --- ACS Email ---
+    // UseStub=true writes emails to Azure Table Storage (Azurite locally) instead of sending via ACS.
+    // Open the 'EmailOutbox' table in Azure Storage Explorer or the VS Code Azure extension to inspect
+    // sent messages. The RsvpToken column contains the raw token needed for the happy-path .http file.
+    "AcsEmail__UseStub": "true",
+    "AcsEmail__ConnectionString": "<your-acs-connection-string>",
+    "AcsEmail__SenderAddress": "noreply@eventhub.example.com",
+    "EmailOutboxTableName": "EmailOutbox",
+
+    // --- App ---
+    // Base URL of the frontend; embedded in invitation email RSVP links.
+    "App__BaseUrl": "http://localhost:5165"
+  },
+  "ConnectionStrings": {
+    // Same SQL Server instance used by the API so the Functions project reads from the same OutboxMessages table.
+    "DefaultConnection": "Server=localhost,1433;Database=EventHub;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True"
+  }
+}
