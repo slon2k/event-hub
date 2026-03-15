@@ -71,6 +71,6 @@ We use **Azure Entra ID (formerly Azure Active Directory)** as the identity prov
 
 - Requires an Azure Entra ID tenant — not runnable offline without mocking or test tokens.
 - Local development requires either a real dev tenant or a configured test token (documented in `docs/operations/local-development.md`).
-- Token expiry (default 1 hour access token) requires clients to handle refresh — not a concern for an API-only v1 but relevant when the React frontend is added.
+- Token expiry (default 1 hour access token) requires clients to handle refresh — not a concern for an API-only v1 but relevant when the web frontend is added.
 - App Role assignments in Entra ID are not version-controlled — must be documented and scripted separately (future: `infra/scripts/assign-roles.sh`).
 - The split auth model (JWT for organizers, magic link for participants) requires two distinct auth middleware registrations and clear endpoint segregation.

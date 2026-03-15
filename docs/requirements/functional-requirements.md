@@ -177,7 +177,7 @@
 | RSVP change after token consumed | By design: Organizer cancels the existing invitation and sends a new one. Participant self-service RSVP change planned for v2. |
 | Magic link re-issue by participant | Organizer reissues token in v1 (`POST /api/events/{eventId}/invitations/{invitationId}/reissue`); participant self-service planned for v2 |
 | Participant account / Entra External Identities | Participants are guests in v1; optional account upgrade planned for v2 |
-| Frontend UI | API-only in v1; React frontend planned for v2 |
+| Frontend UI | API-only in v1; web frontend planned for v2 |
 
 ---
 

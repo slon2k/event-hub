@@ -10,14 +10,14 @@
 
 ## 1. System Context
 
-EventHub is a small-scale, invite-only event management platform built as a training application demonstrating production-grade architectural patterns. It exposes a REST API consumed initially by HTTP clients, with a React frontend planned for v2.
+EventHub is a small-scale, invite-only event management platform built as a training application demonstrating production-grade architectural patterns. It exposes a REST API consumed initially by HTTP clients, with a web frontend planned for v2.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
 │                         External                                  │
 │                                                                   │
 │  HTTP Client          Azure Entra ID         ACS Email           │
-│  (Postman / React)    (Auth / Roles)         (Delivery)          │
+│  (Postman / Browser)  (Auth / Roles)         (Delivery)          │
 └───────┬──────────────────────┬──────────────────────┬────────────┘
         │ HTTPS                │ JWT validation        │ REST
         ▼                      ▼                       ▼
@@ -93,7 +93,7 @@ src/
     EventHub.Infrastructure/   ← EF Core, Repositories, Outbox, Email stub
   notifications/
     EventHub.Notifications/    ← Azure Functions (Timer + ServiceBus triggers)
-  frontend/                    ← React app (v2, placeholder)
+  frontend/                    ← Web frontend (v2, placeholder)
 
 tests/
   EventHub.Domain.UnitTests/

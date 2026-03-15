@@ -83,6 +83,6 @@ The raw token is sent only in the email. The database stores only the **HMAC of 
 ### Negative / Trade-offs
 
 - **Token-in-URL** — the token is present in the email link. If a participant forwards their invitation email, the recipient could RSVP on their behalf. Mitigated by single-use invalidation and short expiry (72h).
-- **No "view my invitations" for participants** — without an account, a participant cannot list past invitations. Mitigated in v2 by the React frontend and optional Entra External Identities.
+- **No "view my invitations" for participants** — without an account, a participant cannot list past invitations. Mitigated in v2 by the web frontend and optional Entra External Identities.
 - **Token re-issue flow not in v1** — if the token expires before responding, the participant cannot self-serve; the organizer must cancel and re-send the invitation. A `reissue` endpoint is planned for v2.
 - **Secret key rotation** — the HMAC secret must be rotated periodically and stored in Key Vault; all active tokens become invalid on rotation (acceptable given 72h lifetime).
