@@ -1,6 +1,6 @@
 # EventHub
 
-A training application demonstrating production-grade patterns at small scale: a simple invite-only event management system built with .NET 10, Clean Architecture, CQRS, the Outbox pattern, Azure Service Bus, and Azure Functions.
+A small-scale, invite-only event management platform built with .NET 10, Clean Architecture, CQRS, the Outbox pattern, Azure Service Bus, and Azure Functions.
 
 ## What It Demonstrates
 
@@ -132,6 +132,7 @@ Authentication to Azure uses OIDC — no long-lived secrets stored in GitHub.
 | [Architecture Overview](docs/architecture/overview.md) | System diagram, tech stack, layer responsibilities |
 | [Domain Model](docs/architecture/domain-model.md) | Entities, aggregates, domain events, enumerations |
 | [Notification Flow](docs/architecture/notification-flow.md) | Outbox → Service Bus → Functions → ACS Email |
+| [Frontend Architecture](docs/architecture/frontend-architecture.md) | Blazor WASM structure, auth, pages, deployment |
 | [Local Development](docs/operations/local-development.md) | Prerequisites, setup, running tests |
 | [Deployment Runbook](docs/operations/deployment.md) | Manual and automated deployment steps |
 
@@ -145,3 +146,4 @@ Authentication to Azure uses OIDC — no long-lived secrets stored in GitHub.
 | [ADR 0004](docs/architecture/adr/0004-azure-service-bus.md) | Azure Service Bus over Azure Storage Queues |
 | [ADR 0005](docs/architecture/adr/0005-azure-entra-id.md) | Azure Entra ID for Authentication and Authorization |
 | [ADR 0006](docs/architecture/adr/0006-magic-link-guest-participants.md) | Magic Link (Tokenized RSVP) for Guest Participants |
+| [ADR 0007](docs/architecture/adr/0007-blazor-wasm-frontend.md) | Blazor WebAssembly for the Web Frontend |

@@ -29,7 +29,6 @@ The `notifications` topic has a subscription `email` consumed by `SendEmailFunct
 | Message lock / competing consumers | Basic | Full |
 | At-least-once guarantee | Yes | Yes |
 | Cost | Lower | Slightly higher (Standard tier) |
-| Demo / training value | Low | **High** |
 
 ## Alternatives Considered
 
@@ -51,6 +50,6 @@ The `notifications` topic has a subscription `email` consumed by `SendEmailFunct
 
 ### Negative / Trade-offs
 
-- Azure Service Bus Standard tier has a cost (approximately $0.05 per million operations); negligible at training scale.
+- Azure Service Bus Standard tier has a cost (approximately $0.05 per million operations); negligible at this application's scale.
 - Slightly more complex local development setup than Storage Queues (no full local emulator; use connection string to a shared dev namespace or the `ServiceBusClient` with a local emulator in Docker).
 - Requires provisioning a Service Bus namespace in Bicep (added to `infra/bicep/modules/`).

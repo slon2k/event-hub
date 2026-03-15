@@ -67,7 +67,7 @@ The raw token is sent only in the email. The database stores only the **HMAC of 
 | --- | --- |
 | Entra ID for participants | Requires enterprise account; too much friction for external/occasional participants |
 | ASP.NET Core Identity | Builds a second user store and auth system; significant boilerplate with no architectural benefit for this demo; password reset / email confirmation flows distract from core patterns |
-| Entra External Identities (B2C) | Separate tenant required; significant setup overhead; better suited as a standalone training topic |
+| Entra External Identities (B2C) | Separate tenant required; significant setup overhead not justified by the participant authentication requirement |
 | No authentication (open link) | Anyone who has the URL (e.g., forwarded email) can respond; no integrity guarantee |
 
 ## Consequences

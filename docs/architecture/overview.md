@@ -10,7 +10,7 @@
 
 ## 1. System Context
 
-EventHub is a small-scale, invite-only event management platform built as a training application demonstrating production-grade architectural patterns. It exposes a REST API consumed initially by HTTP clients, with a web frontend planned for v2.
+EventHub is a small-scale, invite-only event management platform built with production-grade architectural patterns. It exposes a REST API consumed initially by HTTP clients, with a web frontend planned for v2.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐

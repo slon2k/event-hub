@@ -51,11 +51,11 @@ We use **Azure Entra ID (formerly Azure Active Directory)** as the identity prov
 | Option | Reason not chosen |
 | --- | --- |
 | Entra ID for all roles including Participant | Requires external/casual participants to have an enterprise account; creates unnecessary friction for RSVP |
-| ASP.NET Core Identity for Participants | Second user store, custom token issuance, password reset, email confirmation — significant boilerplate that distracts from the core patterns being taught; see ADR 0006 |
-| Auth0 / Okta | Third-party SaaS; adds external dependency and cost; less relevant for Azure-focused training |
-| Entra External Identities (B2C) | Separate tenant resource, significant setup overhead; better suited as a standalone training topic |
+| ASP.NET Core Identity for Participants | Introduces a second identity store with custom token issuance, password reset, and email confirmation flows — significant complexity with no architectural benefit for this application; see ADR 0006 |
+| Auth0 / Okta | Third-party SaaS; adds external dependency and cost; inconsistent with the Azure-first infrastructure strategy |
+| Entra External Identities (B2C) | Separate tenant resource; significant setup overhead not justified by the participant authentication requirement |
 | API Keys | No user identity — cannot enforce per-user resource ownership or role-based access |
-| No authentication | Acceptable for pure domain demos but undermines the "prod-like" training goal |
+| No authentication | Incompatible with resource ownership and role-based access control requirements |
 
 ## Consequences
 
