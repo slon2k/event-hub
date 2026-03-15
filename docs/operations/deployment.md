@@ -259,6 +259,10 @@ Required once per repository. See [Azure OIDC documentation](https://learn.micro
 | Secret | Description |
 | --- | --- |
 | `SQL_ADMIN_PASSWORD` | SQL Server administrator password. Must match the password used when the SQL Server was first created. |
+| `RSVP_HMAC_KEY` | Base64-encoded 32-byte HMAC-SHA256 key for RSVP magic-link token signing. Generate with: `[Convert]::ToBase64String((1..32 \| ForEach-Object { [byte](Get-Random -Maximum 256) }))`. Use a different value per environment. |
+| `GRAPH_TENANT_ID` | Directory (tenant) ID of the identity Entra tenant where the Graph client app registration lives. |
+| `GRAPH_CLIENT_ID` | Application (client) ID of the `EventHub-GraphClient-<env>` app registration. |
+| `GRAPH_CLIENT_SECRET` | Client secret for the Graph client app registration. Re-run infra deploy after rotation to update Key Vault. |
 
 ---
 
