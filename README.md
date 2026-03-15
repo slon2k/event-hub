@@ -47,6 +47,7 @@ A small-scale, invite-only event management platform built with .NET 10, Clean A
 │   └── notifications/
 │       └── EventHub.Notifications/ # Azure Functions (Timer + ServiceBus)
 └── tests/
+    ├── EventHub.Api.E2ETests/
     ├── EventHub.Api.FunctionalTests/
     ├── EventHub.Application.UnitTests/
     ├── EventHub.Domain.UnitTests/
