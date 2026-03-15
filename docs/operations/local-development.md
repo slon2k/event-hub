@@ -356,13 +356,33 @@ Integration and functional tests use **Testcontainers** to spin up a SQL Server 
 
 ## 9. Seeding Test Data
 
-A development seed script is available to populate the database with sample users, events, and invitations:
+A development seed command populates the local database with a fixed set of sample events and invitations. It is safe to run multiple times (idempotent).
+
+**Step 1 — Generate a local token for the seed organizer:**
 
 ```bash
-dotnet run --project src/backend/EventHub.Api -- --seed
+dotnet user-jwts create --project src/backend/EventHub.Api --role Organizer --claim "oid=a1b2c3d4-e5f6-7890-abcd-ef1234567890" --output token
 ```
 
-> This flag is only active when `ASPNETCORE_ENVIRONMENT=Development`.
+Copy the printed token into `EVENTHUB_BEARER_TOKEN` in your `.env` file.
+
+**Step 2 — Run the seeder:**
+
+```bash
+ASPNETCORE_ENVIRONMENT=Development dotnet run --project src/backend/EventHub.Api -- --seed
+```
+
+The seeder:
+
+- Applies any pending EF migrations before inserting data
+- Creates **3 events** for organizer `a1b2c3d4-e5f6-7890-abcd-ef1234567890` (Draft, Published, Cancelled)
+- Creates **3 invitations** on the Published event (Accepted, Declined, Pending)
+- Skips silently if seed data for that organizer already exists
+- Exits with code `0` on success; prints a summary to stdout
+
+> **Note:** The `--seed` flag is rejected outside of `Development` environment.
+
+To view the seeded events after running, call `GET /api/events` with the token from Step 1.
 
 ---
 

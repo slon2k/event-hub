@@ -1,3 +1,4 @@
+using EventHub.Api;
 using EventHub.Api.Endpoints;
 using EventHub.Api.Middleware;
 using EventHub.Application;
@@ -116,6 +117,21 @@ app.MapHealthChecks("/healthz", new HealthCheckOptions
 app.MapEventEndpoints();
 app.MapInvitationEndpoints();
 app.MapAdminEndpoints();
+
+// -----------------------------------------------------------------------
+// Seed (Development only — dotnet run ... -- --seed)
+// -----------------------------------------------------------------------
+if (args.Contains("--seed"))
+{
+    if (!app.Environment.IsDevelopment())
+    {
+        Console.Error.WriteLine("ERROR: --seed is only available when ASPNETCORE_ENVIRONMENT=Development.");
+        return;
+    }
+
+    await DataSeeder.RunAsync(app);
+    return;
+}
 
 app.Run();
 
