@@ -10,6 +10,7 @@
     <Project Path="src/backend/EventHub.Infrastructure/EventHub.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/EventHub.Api.E2ETests/EventHub.Api.E2ETests.csproj" />
     <Project Path="tests/EventHub.Api.FunctionalTests/EventHub.Api.FunctionalTests.csproj" />
     <Project Path="tests/EventHub.Application.UnitTests/EventHub.Application.UnitTests.csproj" />
     <Project Path="tests/EventHub.Domain.UnitTests/EventHub.Domain.UnitTests.csproj" />
